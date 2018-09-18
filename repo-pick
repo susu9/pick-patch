@@ -1,0 +1,239 @@
+#!/usr/bin/env python3
+#
+# Copyright 2018 Rick Chang <chchang915@gmail.com>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import sys, os, urllib.request, netrc, json, subprocess, argparse
+import ssl
+from urllib.parse import urlparse
+
+REPO='repo'
+DOWNLOAD_PROT = set(['ssh', 'http', 'git'])
+DEFAULT_NETRC_PATH = "~/.netrc"
+DEFAULT_GERRIT_SERVER = "TBD"
+CUR_PATH    = os.getcwd()
+
+RED         = "\x1b[31m"
+GREEN       = "\x1b[32m"
+NONE        = "\x1b[0m"
+
+def Loge(s):
+    print(RED + s + NONE)
+
+def Logm(s):
+    print(GREEN + s + NONE)
+
+def Run(cmd):
+    return subprocess.call(cmd.split(' '))
+
+def RunLog(cmd, silent=False):
+    try:
+        ret = subprocess.check_output(cmd.split(' '),
+                                      stderr=subprocess.STDOUT)
+        return ret.decode('UTF-8').rstrip()
+    except Exception as e:
+        if not silent:
+            print(e)
+        return None
+
+class GerritRest:
+    # https://github.com/GerritCodeReview/gerrit/blob/master/Documentation/rest-api.txt
+    def __init__(self, url, username, password, auth):
+        url = url.rstrip('/')
+        password_mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
+        password_mgr.add_password(None, url, username, password)
+        if auth == 'digest':
+            auth = urllib.request.HTTPDigestAuthHandler(password_mgr)
+        else:
+            auth = urllib.request.HTTPBasicAuthHandler(password_mgr)
+        opener = urllib.request.build_opener(auth)
+        urllib.request.install_opener(opener)
+        self.server = url
+
+    def query(self, q):
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json;charset=UTF-8"
+        }
+
+        req = urllib.request.Request("%s/a%s" % (self.server, q), None, headers)
+        try:
+            response = urllib.request.urlopen(req, None, 5)
+        except Exception as e:
+            Loge("query fail: %s" % e)
+            return None
+        # skip )]}'
+        response.readline()
+        data = response.read().decode("UTF-8")
+        return json.loads(data)
+
+def GetLog(commit_id):
+    return RunLog("git log --no-decorate -1 %s" % commit_id)
+
+def GetMachine(url):
+    info = urlparse(url)
+    machine = info.netloc
+    if info.port:
+        return machine.replace(":%s" % info.port, "")
+    return machine
+
+def GetLoginInfoNetrc(url, path):
+    path = os.path.expanduser(path)
+    if not os.path.isfile(path):
+        Loge("Can't find netrc path '%s'" % (path))
+        return None, None
+
+    handle = netrc.netrc(path)
+    machine = GetMachine(url)
+    info = handle.authenticators(machine)
+    if not info:
+        Loge("Can't find machine '%s' in '%s'" % (machine, path))
+        return None, None
+    (login, account, password) = info
+    return (login, password)
+
+def ParseArguments(argv):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('change_id', nargs='+',
+                        help = 'ex. 421316')
+    parser.add_argument('-u', '--user', nargs=1,
+                        help='gerrit user id')
+    parser.add_argument('-p', '--password', nargs=1,
+                        help='gerrit password')
+    parser.add_argument('-g', '--gerrit', nargs=1, default=[DEFAULT_GERRIT_SERVER],
+                        help='gerrit server url ex. https://gerrit.mycompany.com')
+    parser.add_argument('-d', '--dryrun', action='store_true', default=False,
+                        help='show what would be done')
+    parser.add_argument('-b', '--basic', action='store_true', default=False,
+                        help='use HTTP basic authentication')
+    parser.add_argument('-n', '--netrc', nargs=1, default=[DEFAULT_NETRC_PATH],
+                        help='assign netrc path ex. ~/.netrc')
+    opts = parser.parse_args(argv[1:])
+    if (opts.basic):
+        opts.auth = "basic"
+    else:
+        # https://review.openstack.org/Documentation/rest-api.html
+        # By default Gerrit uses HTTP digest authentication
+        opts.auth = "digest"
+    return opts
+
+def ChangeIdToRefId(change_id, patchset_id):
+    if not change_id.isdigit():
+        Loge("error: Unknown change id format '%s'" % change_id)
+        return None
+
+    hash_id = str(int(change_id) % 100)
+    if len(hash_id) == 1:
+        hash_id = "0" + hash_id
+    return "refs/changes/%s/%s/%s" % (hash_id, change_id, patchset_id)
+
+def ResponseToPatch(response, change_id, patchset_id):
+    info = response[0]
+    project = info['project']
+    current_revision = info['current_revision']
+    if not patchset_id:
+        patchset_id = info['revisions'][current_revision]['_number']
+    fetch_info = info['revisions'][current_revision]['fetch']
+
+    remote = ""
+    for key, val in fetch_info.items():
+        if key in DOWNLOAD_PROT:
+            remote = val['url'] 
+            break
+    patch = {'project': project, 'remote': remote, 'patch': "%s/%s" % (change_id, patchset_id), 'ref': ChangeIdToRefId(change_id, patchset_id)}
+    return patch
+
+def GetPatchList(rest, change_ids):
+    patch_list = {}
+    for change_id in change_ids:
+        patchset_id = ""
+        if '/' in change_id:
+            compound_id = change_id
+            change_id = compound_id.split('/')[0]
+            patchset_id = compound_id.split('/')[1]
+        query = '/changes/?q=%s&o=%s' % (change_id, "CURRENT_REVISION")
+        response = rest.query(query)
+        if not response:
+            Loge ("Can't find change id '%s'" % change_id)
+            return None
+#print(response)
+        patch = ResponseToPatch(response, change_id, patchset_id)
+        project = patch['project']
+        patch_list[project] = patch_list.get(project, [])
+        patch_list[project].append(patch)
+    return patch_list
+
+def InstallPatch(opts, remote, ref_id):
+    if Run("git fetch %s %s" % (remote, ref_id)):
+        return 1
+
+    if opts.dryrun:
+        print(GetLog("FETCH_HEAD"))
+        return 0
+
+    ret = Run("git cherry-pick FETCH_HEAD")
+    return ret
+
+def ShowHowInstallPatches(project, patches):
+    Loge("[PROJECT][%s]" % project)
+    print("WARN: The install path for the project can't be found in the current manifest.")
+    print("WARN: Do the following commands manually in the right path.")
+    print("-" * 60)
+    for patch in patches:
+        print("git fetch %s %s && git cherry-pick FETCH_HEAD" % (patch['remote'], patch['ref']))
+    print("-" * 60)
+    return 0
+
+def InstallPatches(opts, project, patches):
+    path = RunLog("%s list -p %s" % (REPO, project), silent=True)
+    if not path:
+        return ShowHowInstallPatches(project, patches)
+    full_path = RunLog("%s list -pf %s" % (REPO, project), silent=True)
+
+    Logm("[%s]" % path)
+    os.chdir(full_path)
+    for patch in patches:
+        remote = patch['remote']
+        ref_id = patch['ref']
+
+        print("Pick: %s %s" % (remote, ref_id))
+        print("-" * 60)
+        ret = InstallPatch(opts, remote, ref_id)
+        print("-" * 60)
+        if ret:
+            break
+    os.chdir(CUR_PATH)
+
+def main(argv):
+    opts = ParseArguments(argv)
+#print(opts)
+    
+    if not opts.user and not opts.password:
+        (opts.user, opts.password) = GetLoginInfoNetrc(opts.gerrit[0], opts.netrc[0])
+    if not opts.user and not opts.password:
+        return 1
+    
+    print("Get patches from server: %s" % opts.gerrit[0])
+    rest = GerritRest(opts.gerrit[0], opts.user, opts.password, opts.auth)
+    
+    print("Getting patch list ...")
+    patch_list = GetPatchList(rest, opts.change_id)
+    if not patch_list:
+        return 1
+
+    print("Installing patches ...")
+    for project, patches in patch_list.items():
+        InstallPatches(opts, project, patches)
+
+if __name__ == '__main__':
+    main(sys.argv)
