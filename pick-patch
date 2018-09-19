@@ -103,6 +103,9 @@ def GetLoginInfoNetrc(url, path):
 
     handle = netrc.netrc(path)
     machine = GetMachine(url)
+    if not machine:
+        Loge("Can't find machine from '%s'" % (url))
+        return None, None
     info = handle.authenticators(machine)
     if not info:
         Loge("Can't find machine '%s' in '%s'" % (machine, path))
