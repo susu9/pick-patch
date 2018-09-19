@@ -48,15 +48,13 @@ def RunLog(cmd, silent=False):
 
 class GerritRest:
     # https://github.com/GerritCodeReview/gerrit/blob/master/Documentation/rest-api.txt
-    def __init__(self, url, username, password, auth):
+    def __init__(self, url, username, password):
         url = url.rstrip('/')
         password_mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
         password_mgr.add_password(None, url, username, password)
-        if auth == 'digest':
-            auth = urllib.request.HTTPDigestAuthHandler(password_mgr)
-        else:
-            auth = urllib.request.HTTPBasicAuthHandler(password_mgr)
-        opener = urllib.request.build_opener(auth)
+        digest_auth = urllib.request.HTTPDigestAuthHandler(password_mgr)
+        basic_auth = urllib.request.HTTPBasicAuthHandler(password_mgr)
+        opener = urllib.request.build_opener(digest_auth, basic_auth)
         urllib.request.install_opener(opener)
         self.server = url
 
@@ -116,18 +114,9 @@ def ParseArguments(argv):
                         help='gerrit server url ex. https://gerrit.mycompany.com')
     parser.add_argument('-d', '--dryrun', action='store_true', default=False,
                         help='show what would be done')
-    parser.add_argument('-b', '--basic', action='store_true', default=False,
-                        help='use HTTP basic authentication')
     parser.add_argument('-n', '--netrc', nargs=1, default=[DEFAULT_NETRC_PATH],
                         help='assign netrc path ex. ~/.netrc')
-    opts = parser.parse_args(argv[1:])
-    if (opts.basic):
-        opts.auth = "basic"
-    else:
-        # https://review.openstack.org/Documentation/rest-api.html
-        # By default Gerrit uses HTTP digest authentication
-        opts.auth = "digest"
-    return opts
+    return parser.parse_args(argv[1:])
 
 def ChangeIdToRefId(change_id, patchset_id):
     if not change_id.isdigit():
@@ -227,7 +216,7 @@ def main(argv):
         return 1
     
     print("Get patches from server: %s" % opts.gerrit[0])
-    rest = GerritRest(opts.gerrit[0], opts.user, opts.password, opts.auth)
+    rest = GerritRest(opts.gerrit[0], opts.user, opts.password)
     
     print("Getting patch list ...")
     patch_list = GetPatchList(rest, opts.change_id)
