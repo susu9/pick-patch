@@ -1,8 +1,8 @@
-# repo-pick
+# pick-patch
 Help you cherry pick patches from Gerrit server
 
 # Setup
-You may want to customize following variables in repo-pick
+You may want to customize following variables in pick-patch
 ```
 REPO='repo'
 CONNECT_TIMEOUT=30
@@ -12,9 +12,9 @@ DEFAULT_NETRC_PATH = "~/.netrc"
 ```
 
 # Features
-Input a list of change ids, repo-pick can help you cherry pick patches from Gerrit server
+Input a list of change ids, pick-patch can help you cherry pick patches from Gerrit server
 ```
-$repo-pick 1234 5566 7788/1
+$pick-patch 1234 5566 7788/1
 [kernel]
 Pick: https://gerrit.mycompany.com/kernel refs/changes/34/1234/5
 ------------------------------------------------------------
@@ -34,7 +34,7 @@ Pick: https://gerrit.mycompany.com/middleware refs/changes/88/7788/1
 
 # Usage
 ```
-usage: repo-pick [-h] [-u USER] [-p PASSWORD] [-g GERRIT] [-d] [-n NETRC]
+usage: pick-patch [-h] [-u USER] [-p PASSWORD] [-g GERRIT] [-d] [-n NETRC]
                  [-i INSTALL]
                  change_id [change_id ...]
 
