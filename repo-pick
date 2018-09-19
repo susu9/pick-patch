@@ -17,13 +17,16 @@ import sys, os, urllib.request, netrc, json, subprocess, argparse
 import ssl
 from urllib.parse import urlparse
 
+# ------ Customization ------
 REPO='repo'
+CONNECT_TIMEOUT=30
 FETCH_PROTOCOL_ORDER = ['http', 'ssh', 'git']
 FETCH_PROTOCOL = set(FETCH_PROTOCOL_ORDER)
 DEFAULT_NETRC_PATH = "~/.netrc"
 DEFAULT_GERRIT_SERVER = "TBD"
-CUR_PATH    = os.getcwd()
+# ---------------------------
 
+CUR_PATH    = os.getcwd()
 RED         = "\x1b[31m"
 GREEN       = "\x1b[32m"
 NONE        = "\x1b[0m"
@@ -68,7 +71,7 @@ class GerritRest:
         ssl._create_default_https_context = ssl._create_unverified_context
         req = urllib.request.Request("%s/a%s" % (self.server, q), None, headers)
         try:
-            response = urllib.request.urlopen(req, None, 5)
+            response = urllib.request.urlopen(req, None, CONNECT_TIMEOUT)
         except Exception as e:
             Loge("query fail: %s" % e)
             print (e.info())
@@ -132,14 +135,10 @@ def ChangeIdToRefId(change_id, patchset_id):
     return "refs/changes/%s/%s/%s" % (hash_id, change_id, patchset_id)
 
 def GetRemote(fetch_info):
-    remotes = {}
     remote = ''
-    for key, val in fetch_info.items():
-        if key in FETCH_PROTOCOL:
-            remotes[key] = remotes.get(key, val['url'])
     for prot in FETCH_PROTOCOL_ORDER:
-        if remotes[prot]:
-            remote = remotes[prot]
+        if prot in fetch_info:
+            remote = fetch_info[prot]['url']
             break
     return remote
 
@@ -199,7 +198,7 @@ def InstallPatch(opts, remote, ref_id):
 def ShowHowInstallPatches(project, patches):
     Loge("[PROJECT][%s]" % project)
     print("WARN: The install path for the project can't be found.")
-    print("WARN: Do the following commands manually in the right path.")
+    print("WARN: Use the following commands manually in the right path.")
     print("-" * 60)
     for patch in patches:
         print("git fetch %s %s && git cherry-pick FETCH_HEAD" % (patch['remote'], patch['ref']))
