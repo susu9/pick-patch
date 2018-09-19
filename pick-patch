@@ -237,7 +237,7 @@ def InstallPatches(opts, project, patches):
     if not full_path or not os.path.exists(full_path):
         return ShowHowInstallPatches(project, patches)
 
-    Logm("[%s]" % path)
+    Logm("[%s]" % full_path)
     os.chdir(full_path)
     for patch in patches:
         remote = patch['remote']
