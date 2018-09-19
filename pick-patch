@@ -21,7 +21,6 @@ from urllib.parse import urlparse
 REPO='repo'
 CONNECT_TIMEOUT=30
 FETCH_PROTOCOL_ORDER = ['http', 'ssh', 'git']
-FETCH_PROTOCOL = set(FETCH_PROTOCOL_ORDER)
 DEFAULT_NETRC_PATH = "~/.netrc"
 DEFAULT_GERRIT_SERVER = "TBD"
 # ---------------------------
