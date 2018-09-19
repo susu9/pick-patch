@@ -231,7 +231,7 @@ def InstallPatches(opts, project, patches):
     else:
         path = full_path = opts.install[0]
 
-    if not path or not os.path.exists(path):
+    if not full_path or not os.path.exists(full_path):
         return ShowHowInstallPatches(project, patches)
 
     Logm("[%s]" % path)
