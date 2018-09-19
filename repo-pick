@@ -66,11 +66,13 @@ class GerritRest:
             "Content-Type": "application/json;charset=UTF-8"
         }
 
+        ssl._create_default_https_context = ssl._create_unverified_context
         req = urllib.request.Request("%s/a%s" % (self.server, q), None, headers)
         try:
             response = urllib.request.urlopen(req, None, 5)
         except Exception as e:
             Loge("query fail: %s" % e)
+            print (e.info())
             return None
         # skip )]}'
         response.readline()
@@ -162,6 +164,7 @@ def GetPatchList(rest, change_ids):
             change_id = compound_id.split('/')[0]
             patchset_id = compound_id.split('/')[1]
         query = '/changes/?q=%s&o=%s' % (change_id, "CURRENT_REVISION")
+#print(query)
         response = rest.query(query)
         if not response:
             Loge ("Can't find change id '%s'" % change_id)
