@@ -131,10 +131,6 @@ def ParseArguments(argv):
     return parser.parse_args(argv[1:])
 
 def ChangeIdToRefId(change_id, patchset_id):
-    if not change_id.isdigit():
-        Loge("error: Unknown change id format '%s'" % change_id)
-        return None
-
     hash_id = str(int(change_id) % 100)
     if len(hash_id) == 1:
         hash_id = "0" + hash_id
@@ -165,14 +161,29 @@ def ResponseToPatch(response, change_id, patchset_id):
     patch = {'project': project, 'remote': remote, 'patch': "%s/%s" % (change_id, patchset_id), 'ref': ChangeIdToRefId(change_id, patchset_id)}
     return patch
 
+def GetChangeIdInfo(change_id):
+    patchset_id = ''
+    if '/' in change_id:
+        compound_id = change_id.split('/')
+        if len(compound_id) != 2:
+            return None, None
+        change_id = compound_id[0]
+        patchset_id = compound_id[1]
+
+    if not change_id.isdigit():
+        return None, None
+    if patchset_id and not patchset_id.isdigit():
+        return None, None
+    return change_id, patchset_id
+
 def GetPatchList(opts, rest):
     patch_list = {}
-    for change_id in opts.change_id:
-        patchset_id = ""
-        if '/' in change_id:
-            compound_id = change_id
-            change_id = compound_id.split('/')[0]
-            patchset_id = compound_id.split('/')[1]
+    for input_id in opts.change_id:
+        change_id, patchset_id = GetChangeIdInfo(input_id)
+        if not change_id:
+            Loge("error: Unknown change id format '%s'" % input_id)
+            return None
+
         query = '/changes/?q=%s&o=%s' % (change_id, "CURRENT_REVISION")
         response = rest.query(query, opts.verbose)
         if opts.verbose:
