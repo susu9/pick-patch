@@ -18,7 +18,8 @@ import ssl
 from urllib.parse import urlparse
 
 REPO='repo'
-DOWNLOAD_PROT = set(['ssh', 'http', 'git'])
+FETCH_PROTOCOL_ORDER = ['http', 'ssh', 'git']
+FETCH_PROTOCOL = set(FETCH_PROTOCOL_ORDER)
 DEFAULT_NETRC_PATH = "~/.netrc"
 DEFAULT_GERRIT_SERVER = "TBD"
 CUR_PATH    = os.getcwd()
@@ -105,17 +106,19 @@ def GetLoginInfoNetrc(url, path):
 def ParseArguments(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('change_id', nargs='+',
-                        help = 'ex. 421316')
+                        help = 'ex. 12345, 12345/1')
     parser.add_argument('-u', '--user', nargs=1,
                         help='gerrit user id')
     parser.add_argument('-p', '--password', nargs=1,
-                        help='gerrit password')
+                        help='gerrit HTTP password')
     parser.add_argument('-g', '--gerrit', nargs=1, default=[DEFAULT_GERRIT_SERVER],
                         help='gerrit server url ex. https://gerrit.mycompany.com')
     parser.add_argument('-d', '--dryrun', action='store_true', default=False,
                         help='show what would be done')
     parser.add_argument('-n', '--netrc', nargs=1, default=[DEFAULT_NETRC_PATH],
                         help='assign netrc path ex. ~/.netrc')
+    parser.add_argument('-i', '--install', nargs=1, default='',
+                        help='assign install path rather than resolving from repo command')
     return parser.parse_args(argv[1:])
 
 def ChangeIdToRefId(change_id, patchset_id):
@@ -128,6 +131,18 @@ def ChangeIdToRefId(change_id, patchset_id):
         hash_id = "0" + hash_id
     return "refs/changes/%s/%s/%s" % (hash_id, change_id, patchset_id)
 
+def GetRemote(fetch_info):
+    remotes = {}
+    remote = ''
+    for key, val in fetch_info.items():
+        if key in FETCH_PROTOCOL:
+            remotes[key] = remotes.get(key, val['url'])
+    for prot in FETCH_PROTOCOL_ORDER:
+        if remotes[prot]:
+            remote = remotes[prot]
+            break
+    return remote
+
 def ResponseToPatch(response, change_id, patchset_id):
     info = response[0]
     project = info['project']
@@ -136,11 +151,12 @@ def ResponseToPatch(response, change_id, patchset_id):
         patchset_id = info['revisions'][current_revision]['_number']
     fetch_info = info['revisions'][current_revision]['fetch']
 
-    remote = ""
-    for key, val in fetch_info.items():
-        if key in DOWNLOAD_PROT:
-            remote = val['url'] 
-            break
+    remote = GetRemote(fetch_info)
+    if not remote:
+        Loge("Can't find remote repository for %s" % change_id)
+        print(fetch_info)
+        return None
+
     patch = {'project': project, 'remote': remote, 'patch': "%s/%s" % (change_id, patchset_id), 'ref': ChangeIdToRefId(change_id, patchset_id)}
     return patch
 
@@ -159,7 +175,11 @@ def GetPatchList(rest, change_ids):
             Loge ("Can't find change id '%s'" % change_id)
             return None
 #print(response)
+
         patch = ResponseToPatch(response, change_id, patchset_id)
+        if not patch:
+            return None
+
         project = patch['project']
         patch_list[project] = patch_list.get(project, [])
         patch_list[project].append(patch)
@@ -178,7 +198,7 @@ def InstallPatch(opts, remote, ref_id):
 
 def ShowHowInstallPatches(project, patches):
     Loge("[PROJECT][%s]" % project)
-    print("WARN: The install path for the project can't be found in the current manifest.")
+    print("WARN: The install path for the project can't be found.")
     print("WARN: Do the following commands manually in the right path.")
     print("-" * 60)
     for patch in patches:
@@ -187,10 +207,14 @@ def ShowHowInstallPatches(project, patches):
     return 0
 
 def InstallPatches(opts, project, patches):
-    path = RunLog("%s list -p %s" % (REPO, project), silent=True)
-    if not path:
+    if not opts.install:
+        path = RunLog("%s list -p %s" % (REPO, project), silent=True)
+        full_path = RunLog("%s list -pf %s" % (REPO, project), silent=True)
+    else:
+        path = full_path = opts.install[0]
+
+    if not path or not os.path.exists(path):
         return ShowHowInstallPatches(project, patches)
-    full_path = RunLog("%s list -pf %s" % (REPO, project), silent=True)
 
     Logm("[%s]" % path)
     os.chdir(full_path)
