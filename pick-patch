@@ -61,14 +61,17 @@ class GerritRest:
         urllib.request.install_opener(opener)
         self.server = url
 
-    def query(self, q):
+    def query(self, q, verbose=False):
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json;charset=UTF-8"
         }
 
         ssl._create_default_https_context = ssl._create_unverified_context
-        req = urllib.request.Request("%s/a%s" % (self.server, q), None, headers)
+        url = "%s/a%s" % (self.server, q)
+        if verbose:
+            print("Query: %s" % url)
+        req = urllib.request.Request(url, None, headers)
         try:
             response = urllib.request.urlopen(req, None, CONNECT_TIMEOUT)
         except Exception as e:
@@ -77,8 +80,10 @@ class GerritRest:
             return None
         # skip )]}'
         response.readline()
-        data = response.read().decode("UTF-8")
-        return json.loads(data)
+        data = json.loads(response.read().decode("UTF-8"))
+        if verbose:
+            print("Response: %s" % data)
+        return data
 
 def GetLog(commit_id):
     return RunLog("git log --no-decorate -1 %s" % commit_id)
@@ -121,6 +126,8 @@ def ParseArguments(argv):
                         help='assign netrc path ex. ~/.netrc')
     parser.add_argument('-i', '--install', nargs=1, default='',
                         help='assign install path rather than resolving from repo command')
+    parser.add_argument('-v', '--verbose', action='store_true', default=False,
+                        help='show more logs')
     return parser.parse_args(argv[1:])
 
 def ChangeIdToRefId(change_id, patchset_id):
@@ -158,21 +165,21 @@ def ResponseToPatch(response, change_id, patchset_id):
     patch = {'project': project, 'remote': remote, 'patch': "%s/%s" % (change_id, patchset_id), 'ref': ChangeIdToRefId(change_id, patchset_id)}
     return patch
 
-def GetPatchList(rest, change_ids):
+def GetPatchList(opts, rest):
     patch_list = {}
-    for change_id in change_ids:
+    for change_id in opts.change_id:
         patchset_id = ""
         if '/' in change_id:
             compound_id = change_id
             change_id = compound_id.split('/')[0]
             patchset_id = compound_id.split('/')[1]
         query = '/changes/?q=%s&o=%s' % (change_id, "CURRENT_REVISION")
-#print(query)
-        response = rest.query(query)
+        response = rest.query(query, opts.verbose)
+        if opts.verbose:
+            print("-" * 60)
         if not response:
             Loge ("Can't find change id '%s'" % change_id)
             return None
-#print(response)
 
         patch = ResponseToPatch(response, change_id, patchset_id)
         if not patch:
@@ -230,18 +237,16 @@ def InstallPatches(opts, project, patches):
 
 def main(argv):
     opts = ParseArguments(argv)
-#print(opts)
     
     if not opts.user and not opts.password:
         (opts.user, opts.password) = GetLoginInfoNetrc(opts.gerrit[0], opts.netrc[0])
     if not opts.user and not opts.password:
         return 1
     
-    print("Get patches from server: %s" % opts.gerrit[0])
     rest = GerritRest(opts.gerrit[0], opts.user, opts.password)
     
     print("Getting patch list ...")
-    patch_list = GetPatchList(rest, opts.change_id)
+    patch_list = GetPatchList(opts, rest)
     if not patch_list:
         return 1
 

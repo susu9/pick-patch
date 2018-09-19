@@ -35,8 +35,8 @@ Pick: https://gerrit.mycompany.com/middleware refs/changes/88/7788/1
 # Usage
 ```
 usage: pick-patch [-h] [-u USER] [-p PASSWORD] [-g GERRIT] [-d] [-n NETRC]
-                 [-i INSTALL]
-                 change_id [change_id ...]
+                  [-i INSTALL] [-v]
+                  change_id [change_id ...]
 
 positional arguments:
   change_id             ex. 12345, 12345/1
@@ -54,4 +54,5 @@ optional arguments:
   -i INSTALL, --install INSTALL
                         assign install path rather than resolving from repo
                         command
+  -v, --verbose         show more logs
 ```
