@@ -258,7 +258,7 @@ def main(argv):
     
     rest = GerritRest(opts.gerrit[0], opts.user, opts.password)
     
-    print("Getting patch list ...")
+    print("Getting patches from '%s' ..." % opts.gerrit[0])
     patch_list = GetPatchList(opts, rest)
     if not patch_list:
         return 1

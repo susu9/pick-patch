@@ -14,7 +14,9 @@ DEFAULT_NETRC_PATH = "~/.netrc"
 # Features
 Input a list of change ids, pick-patch can help you cherry pick patches from Gerrit server
 ```
-$pick-patch 1234 5566 7788/1
+$pick-patch -g https://gerrit.mycompany.com 1234 5566 7788/1
+Getting patches from 'https://gerrit.mycompany.com' ...
+Installing patches ...
 [kernel]
 Pick: https://gerrit.mycompany.com/kernel refs/changes/34/1234/5
 ------------------------------------------------------------
