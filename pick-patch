@@ -215,17 +215,25 @@ def InstallPatch(opts, remote, ref_id):
     ret = Run("git cherry-pick FETCH_HEAD")
     return ret
 
-def ShowHowInstallPatches(project, patches):
+def CheckInstallPath(full_path, project, patches):
+    error_msg = "The install path for the project can't be found."
+    if not full_path:
+        error_msg = "The install path can't be resolved from command '%s list'." % REPO
+    elif not os.path.exists(full_path):
+        error_msg = "The install path '%s' is not found." % full_path
+    else:
+        return True
+
     Loge("[PROJECT][%s]" % project)
     print('''\
-WARNING: The install path for the project can't be found.
+WARNING: %s
     (use -i argument to assign right path for the patches)
-    (use the following commands manually in the right path)''')
+    (use the following commands manually in the right path)''' % error_msg)
     print("-" * 60)
     for patch in patches:
         print("git fetch %s %s && git cherry-pick FETCH_HEAD" % (patch['remote'], patch['ref']))
     print("-" * 60)
-    return 0
+    return False
 
 def InstallPatches(opts, project, patches):
     if not opts.install:
@@ -234,8 +242,8 @@ def InstallPatches(opts, project, patches):
     else:
         path = full_path = opts.install[0]
 
-    if not full_path or not os.path.exists(full_path):
-        return ShowHowInstallPatches(project, patches)
+    if not CheckInstallPath(full_path, project, patches):
+        return
 
     Logm("[%s]" % full_path)
     os.chdir(full_path)
