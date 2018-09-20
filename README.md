@@ -4,11 +4,12 @@ Help you cherry pick patches from Gerrit server
 # Setup
 You may want to customize following variables in pick-patch
 ```
-REPO='repo'
-CONNECT_TIMEOUT=30
+REPO = 'repo'
+CONNECT_TIMEOUT = 30
 FETCH_PROTOCOL_ORDER = ['http', 'ssh', 'git']
-DEFAULT_GERRIT_SERVER = "TBD"
 DEFAULT_NETRC_PATH = "~/.netrc"
+DEFAULT_GERRIT_SERVER = "TBD"
+DELIMITER = "-" * 80
 ```
 
 # Features

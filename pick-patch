@@ -18,11 +18,12 @@ import ssl
 from urllib.parse import urlparse
 
 # ------ Customization ------
-REPO='repo'
-CONNECT_TIMEOUT=30
+REPO = 'repo'
+CONNECT_TIMEOUT = 30
 FETCH_PROTOCOL_ORDER = ['http', 'ssh', 'git']
 DEFAULT_NETRC_PATH = "~/.netrc"
 DEFAULT_GERRIT_SERVER = "TBD"
+DELIMITER = "-" * 80
 # ---------------------------
 
 CUR_PATH    = os.getcwd()
@@ -190,7 +191,7 @@ def GetPatchList(opts, rest):
         query = '/changes/?q=%s&o=%s' % (change_id, "CURRENT_REVISION")
         response = rest.query(query, opts.verbose)
         if opts.verbose:
-            print("-" * 60)
+            print(DELIMITER)
         if not response:
             Loge ("Can't find change id '%s'" % change_id)
             return None
@@ -229,10 +230,10 @@ def CheckInstallPath(full_path, project, patches):
 WARNING: %s
     (use -i argument to assign right path for the patches)
     (use the following commands manually in the right path)''' % error_msg)
-    print("-" * 60)
+    print(DELIMITER)
     for patch in patches:
         print("git fetch %s %s && git cherry-pick FETCH_HEAD" % (patch['remote'], patch['ref']))
-    print("-" * 60)
+    print(DELIMITER)
     return False
 
 def InstallPatches(opts, project, patches):
@@ -252,9 +253,9 @@ def InstallPatches(opts, project, patches):
         ref_id = patch['ref']
 
         print("Pick: %s %s" % (remote, ref_id))
-        print("-" * 60)
+        print(DELIMITER)
         ret = InstallPatch(opts, remote, ref_id)
-        print("-" * 60)
+        print(DELIMITER)
         if ret:
             break
     os.chdir(CUR_PATH)
