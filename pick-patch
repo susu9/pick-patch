@@ -21,9 +21,10 @@ from urllib.parse import urlparse
 REPO = 'repo'
 CONNECT_TIMEOUT = 30
 FETCH_PROTOCOL_ORDER = ['http', 'ssh', 'git']
-DEFAULT_NETRC_PATH = "~/.netrc"
-DEFAULT_GERRIT_SERVER = "TBD"
-DELIMITER = "-" * 80
+DEFAULT_NETRC_PATH = '~/.netrc'
+DEFAULT_GERRIT_SERVER = 'TBD'
+DELIMITER = '-' * 80
+PREVIEW = 'git log --no-decorate -1'
 # ---------------------------
 
 CUR_PATH    = os.getcwd()
@@ -87,7 +88,7 @@ class GerritRest:
         return data
 
 def GetLog(commit_id):
-    return RunLog("git log --no-decorate -1 %s" % commit_id)
+    return RunLog("%s %s" % (PREVIEW, commit_id))
 
 def GetMachine(url):
     info = urlparse(url)

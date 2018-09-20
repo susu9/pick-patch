@@ -7,9 +7,10 @@ You may want to customize following variables in pick-patch
 REPO = 'repo'
 CONNECT_TIMEOUT = 30
 FETCH_PROTOCOL_ORDER = ['http', 'ssh', 'git']
-DEFAULT_NETRC_PATH = "~/.netrc"
-DEFAULT_GERRIT_SERVER = "TBD"
-DELIMITER = "-" * 80
+DEFAULT_NETRC_PATH = '~/.netrc'
+DEFAULT_GERRIT_SERVER = 'TBD'
+DELIMITER = '-' * 80
+PREVIEW = 'git log --no-decorate -1'
 ```
 
 # Features
