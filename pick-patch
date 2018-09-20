@@ -20,7 +20,7 @@ from urllib.parse import urlparse
 # ------ Customization ------
 REPO = 'repo'
 CONNECT_TIMEOUT = 30
-FETCH_PROTOCOL_ORDER = ['http', 'ssh', 'git']
+FETCH_PROTOCOL_ORDER = 'http ssh git'
 DEFAULT_NETRC_PATH = '~/.netrc'
 DEFAULT_GERRIT_SERVER = 'TBD'
 DELIMITER = '-' * 80
@@ -143,7 +143,7 @@ def ChangeIdToRefId(change_id, patchset_id):
 
 def GetRemote(fetch_info):
     remote = ''
-    for prot in FETCH_PROTOCOL_ORDER:
+    for prot in FETCH_PROTOCOL_ORDER.split(' '):
         if prot in fetch_info:
             remote = fetch_info[prot]['url']
             break
