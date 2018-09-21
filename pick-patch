@@ -214,8 +214,7 @@ def InstallPatch(opts, remote, ref_id):
         print(GetLog("FETCH_HEAD"))
         return 0
 
-    ret = Run("git cherry-pick FETCH_HEAD")
-    return ret
+    return Run("git cherry-pick FETCH_HEAD")
 
 def CheckInstallPath(full_path, project, patches):
     error_msg = "The install path for the project can't be found."
@@ -245,8 +244,9 @@ def InstallPatches(opts, project, patches):
         path = full_path = opts.install[0]
 
     if not CheckInstallPath(full_path, project, patches):
-        return
+        return 1
 
+    fail = 0
     Logm("[%s]" % full_path)
     os.chdir(full_path)
     for patch in patches:
@@ -258,8 +258,10 @@ def InstallPatches(opts, project, patches):
         ret = InstallPatch(opts, remote, ref_id)
         print(DELIMITER)
         if ret:
+            fail = 1
             break
     os.chdir(CUR_PATH)
+    return fail
 
 def main(argv):
     opts = ParseArguments(argv)
@@ -277,8 +279,11 @@ def main(argv):
         return 1
 
     print("Installing patches ...")
+    ret = 0
     for project, patches in patch_list.items():
-        InstallPatches(opts, project, patches)
+        if InstallPatches(opts, project, patches):
+            ret = 1
+    return ret
 
 if __name__ == '__main__':
-    main(sys.argv)
+    sys.exit(main(sys.argv))
