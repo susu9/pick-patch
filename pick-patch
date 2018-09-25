@@ -117,7 +117,7 @@ def GetLoginInfoNetrc(url, path):
 
 def ParseArguments(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument('change_id', nargs='+',
+    parser.add_argument('change_num', nargs='+',
                         help = 'ex. 12345, 12345/1')
     parser.add_argument('-u', '--user', nargs=1,
                         help='gerrit user id')
@@ -135,11 +135,11 @@ def ParseArguments(argv):
                         help='show more logs')
     return parser.parse_args(argv[1:])
 
-def ChangeIdToRefId(change_id, patchset_id):
-    hash_id = str(int(change_id) % 100)
+def ChangeIdToRefId(change_num, patchset_id):
+    hash_id = str(int(change_num) % 100)
     if len(hash_id) == 1:
         hash_id = "0" + hash_id
-    return "refs/changes/%s/%s/%s" % (hash_id, change_id, patchset_id)
+    return "refs/changes/%s/%s/%s" % (hash_id, change_num, patchset_id)
 
 def GetRemote(fetch_info):
     remote = ''
@@ -149,7 +149,7 @@ def GetRemote(fetch_info):
             break
     return remote
 
-def ResponseToPatch(response, change_id, patchset_id):
+def ResponseToPatch(response, change_num, patchset_id):
     info = response[0]
     project = info['project']
     current_revision = info['current_revision']
@@ -159,45 +159,45 @@ def ResponseToPatch(response, change_id, patchset_id):
 
     remote = GetRemote(fetch_info)
     if not remote:
-        Loge("Can't find remote repository for %s" % change_id)
+        Loge("Can't find remote repository for %s" % change_num)
         print(fetch_info)
         return None
 
-    patch = {'project': project, 'remote': remote, 'patch': "%s/%s" % (change_id, patchset_id), 'ref': ChangeIdToRefId(change_id, patchset_id)}
+    patch = {'project': project, 'remote': remote, 'patch': "%s/%s" % (change_num, patchset_id), 'ref': ChangeIdToRefId(change_num, patchset_id)}
     return patch
 
-def GetChangeIdInfo(change_id):
+def GetChangeIdInfo(change_num):
     patchset_id = ''
-    if '/' in change_id:
-        compound_id = change_id.split('/')
+    if '/' in change_num:
+        compound_id = change_num.split('/')
         if len(compound_id) != 2:
             return None, None
-        change_id = compound_id[0]
+        change_num = compound_id[0]
         patchset_id = compound_id[1]
 
-    if not change_id.isdigit():
+    if not change_num.isdigit():
         return None, None
     if patchset_id and not patchset_id.isdigit():
         return None, None
-    return change_id, patchset_id
+    return change_num, patchset_id
 
 def GetPatchList(opts, rest):
     patch_list = {}
-    for input_id in opts.change_id:
-        change_id, patchset_id = GetChangeIdInfo(input_id)
-        if not change_id:
-            Loge("error: Unknown change id format '%s'" % input_id)
+    for input_num in opts.change_num:
+        change_num, patchset_id = GetChangeIdInfo(input_num)
+        if not change_num:
+            Loge("error: Unknown change number format '%s'" % input_num)
             return None
 
-        query = '/changes/?q=%s&o=%s' % (change_id, "CURRENT_REVISION")
+        query = '/changes/?q=%s&o=%s' % (change_num, "CURRENT_REVISION")
         response = rest.query(query, opts.verbose)
         if opts.verbose:
             print(DELIMITER)
         if not response:
-            Loge ("Can't find change id '%s'" % change_id)
+            Loge ("Can't find change number '%s'" % change_num)
             return None
 
-        patch = ResponseToPatch(response, change_id, patchset_id)
+        patch = ResponseToPatch(response, change_num, patchset_id)
         if not patch:
             return None
 

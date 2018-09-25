@@ -14,7 +14,7 @@ PREVIEW = 'git log --no-decorate -1'
 ```
 
 # Features
-Input a list of change ids, pick-patch can help you cherry pick patches from Gerrit server
+Input a list of change numbers, pick-patch can help you cherry pick patches from Gerrit server
 ```
 $pick-patch -g https://gerrit.mycompany.com 1234 5566 7788/1
 Getting patches from 'https://gerrit.mycompany.com' ...
@@ -40,10 +40,10 @@ Pick: https://gerrit.mycompany.com/middleware refs/changes/88/7788/1
 ```
 usage: pick-patch [-h] [-u USER] [-p PASSWORD] [-g GERRIT] [-d] [-n NETRC]
                   [-i INSTALL] [-v]
-                  change_id [change_id ...]
+                  change_num [change_num ...]
 
 positional arguments:
-  change_id             ex. 12345, 12345/1
+  change_num            ex. 12345, 12345/1
 
 optional arguments:
   -h, --help            show this help message and exit
