@@ -14,7 +14,9 @@ PREVIEW = 'git log --no-decorate -1'
 ```
 
 # Features
-Input a list of change numbers, pick-patch can help you cherry pick patches from Gerrit server
+1. Input a list of change numbers, pick-patch can help you cherry pick patches from Gerrit server
+2. Reolve install path automatically (if your project is created by Repo). You can cherry pick
+   multiple patches in different repositories at the same time
 ```
 $pick-patch -g https://gerrit.mycompany.com 1234 5566 7788/1
 Getting patches from 'https://gerrit.mycompany.com' ...
