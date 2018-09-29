@@ -258,6 +258,7 @@ def InstallPatches(opts, project, patches):
         ret = InstallPatch(opts, remote, ref_id)
         print(DELIMITER)
         if ret:
+            Loge("error: pick fail")
             fail = 1
             break
     os.chdir(CUR_PATH)
