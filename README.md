@@ -41,7 +41,7 @@ Pick: https://gerrit.mycompany.com/middleware refs/changes/88/7788/1
 # Usage
 ```
 usage: pick-patch [-h] [-u USER] [-p PASSWORD] [-g GERRIT] [-d] [-n NETRC]
-                  [-i INSTALL] [-v]
+                  [-i INSTALL_PATH] [-v]
                   change_num [change_num ...]
 
 positional arguments:
@@ -57,7 +57,7 @@ optional arguments:
   -d, --dryrun          show what would be done
   -n NETRC, --netrc NETRC
                         assign netrc path ex. ~/.netrc
-  -i INSTALL, --install INSTALL
+  -i INSTALL_PATH, --install-path INSTALL_PATH
                         assign install path rather than resolving from repo
                         command
   -v, --verbose         show more logs
