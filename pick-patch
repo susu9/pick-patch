@@ -129,7 +129,7 @@ def ParseArguments(argv):
                         help='show what would be done')
     parser.add_argument('-n', '--netrc', nargs=1, default=[DEFAULT_NETRC_PATH],
                         help='assign netrc path ex. ~/.netrc')
-    parser.add_argument('-i', '--install', nargs=1, default='',
+    parser.add_argument('-i', '--install-path', nargs=1, default='',
                         help='assign install path rather than resolving from repo command')
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
                         help='show more logs')
@@ -200,6 +200,7 @@ def GetPatchList(opts, rest):
         patch = ResponseToPatch(response, change_num, patchset_id)
         if not patch:
             return None
+        patch['input_num'] = input_num
 
         project = patch['project']
         patch_list[project] = patch_list.get(project, [])
@@ -216,6 +217,12 @@ def InstallPatch(opts, remote, ref_id):
 
     return Run("git cherry-pick FETCH_HEAD")
 
+def GetInputNums(patches):
+    ret = ""
+    for patch in patches:
+        ret += patch['input_num'] + " "
+    return ret.rstrip()
+
 def CheckInstallPath(full_path, project, patches):
     error_msg = "The install path for the project can't be found."
     if not full_path:
@@ -228,8 +235,9 @@ def CheckInstallPath(full_path, project, patches):
     Loge("[PROJECT][%s]" % project)
     print('''\
 WARNING: %s
-    (use -i argument to assign right path for the patches)
-    (use the following commands manually in the right path)''' % error_msg)
+    (use "-i INSTALL_PATH" for '%s' to assign right path)
+    (use the following commands manually in the right path)''' % (error_msg,
+                                                                  GetInputNums(patches)))
     print(DELIMITER)
     for patch in patches:
         print("git fetch %s %s && git cherry-pick FETCH_HEAD" % (patch['remote'], patch['ref']))
@@ -237,11 +245,11 @@ WARNING: %s
     return False
 
 def InstallPatches(opts, project, patches):
-    if not opts.install:
+    if not opts.install_path:
         path = RunLog("%s list -p %s" % (REPO, project), silent=True)
         full_path = RunLog("%s list -pf %s" % (REPO, project), silent=True)
     else:
-        path = full_path = opts.install[0]
+        path = full_path = opts.install_path[0]
 
     if not CheckInstallPath(full_path, project, patches):
         return 1
