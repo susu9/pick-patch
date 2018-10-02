@@ -235,7 +235,7 @@ def CheckInstallPath(full_path, project, patches):
     Loge("[PROJECT][%s]" % project)
     print('''\
 WARNING: %s
-    (use "-i INSTALL_PATH" for '%s' to assign right path)
+    (use '-i INSTALL_PATH' for '%s' to assign right path)
     (use the following commands manually in the right path)''' % (error_msg,
                                                                   GetInputNums(patches)))
     print(DELIMITER)
