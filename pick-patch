@@ -236,7 +236,7 @@ def CheckInstallPath(full_path, project, patches):
     else:
         return True
 
-    Loge("[PROJECT][%s]" % project)
+    Loge("[Repository: %s]" % project)
     print('''\
 WARNING: %s
     (use '-i INSTALL_PATH' for '%s' to assign right path)
