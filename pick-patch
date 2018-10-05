@@ -132,9 +132,9 @@ def ParseArguments(argv):
     parser.add_argument('-i', '--install-path', nargs=1, default='',
                         help='assign install path rather than resolving from repo command')
     parser.add_argument('-F', '--full-path', action='store_true', default=False,
-                        help='display the full install path instead of relative path of the repository')
+                        help='display the full install path instead of the relative install path')
     parser.add_argument('-N', '--name-path', action='store_true', default=False,
-                        help='display the repository name of install path instead of relative path of the repository')
+                        help='display the repository name instead of the relative install path')
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
                         help='show more logs')
     return parser.parse_args(argv[1:])

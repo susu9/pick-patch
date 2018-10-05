@@ -41,7 +41,7 @@ Pick: https://gerrit.mycompany.com/middleware refs/changes/88/7788/1
 # Usage
 ```
 usage: pick-patch [-h] [-u USER] [-p PASSWORD] [-g GERRIT] [-d] [-n NETRC]
-                  [-i INSTALL_PATH] [-v]
+                  [-i INSTALL_PATH] [-F] [-N] [-v]
                   change_num [change_num ...]
 
 positional arguments:
@@ -60,5 +60,9 @@ optional arguments:
   -i INSTALL_PATH, --install-path INSTALL_PATH
                         assign install path rather than resolving from repo
                         command
+  -F, --full-path       display the full install path instead of the relative
+                        install path
+  -N, --name-path       display the repository name instead of the relative
+                        install path
   -v, --verbose         show more logs
 ```
