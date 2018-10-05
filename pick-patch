@@ -131,6 +131,10 @@ def ParseArguments(argv):
                         help='assign netrc path ex. ~/.netrc')
     parser.add_argument('-i', '--install-path', nargs=1, default='',
                         help='assign install path rather than resolving from repo command')
+    parser.add_argument('-F', '--full-path', action='store_true', default=False,
+                        help='display the full install path instead of relative path of the repository')
+    parser.add_argument('-N', '--name-path', action='store_true', default=False,
+                        help='display the repository name of install path instead of relative path of the repository')
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
                         help='show more logs')
     return parser.parse_args(argv[1:])
@@ -249,14 +253,22 @@ def InstallPatches(opts, project, patches):
         path = RunLog("%s list -p %s" % (REPO, project), silent=True)
         full_path = RunLog("%s list -pf %s" % (REPO, project), silent=True)
     else:
-        path = full_path = opts.install_path[0]
+        path  = opts.install_path[0]
+        full_path = os.path.abspath(path)
 
     if not CheckInstallPath(full_path, project, patches):
         return 1
 
-    fail = 0
-    Logm("[%s]" % full_path)
+    if opts.full_path:
+        display_path = full_path
+    elif opts.name_path:
+        display_path = project
+    else:
+        display_path = path
+    Logm("[%s]" % display_path.rstrip('/'))
+
     os.chdir(full_path)
+    fail = 0
     for patch in patches:
         remote = patch['remote']
         ref_id = patch['ref']
