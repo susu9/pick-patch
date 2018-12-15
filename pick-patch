@@ -73,12 +73,11 @@ class GerritRest:
         url = "%s/a%s" % (self.server, q)
         if verbose:
             print("Query: %s" % url)
-        req = urllib.request.Request(url, None, headers)
         try:
+            req = urllib.request.Request(url, None, headers)
             response = urllib.request.urlopen(req, None, CONNECT_TIMEOUT)
         except Exception as e:
             Loge("query fail: %s" % e)
-            print (e.info())
             return None
         # skip )]}'
         response.readline()
