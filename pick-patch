@@ -86,8 +86,8 @@ class GerritRest:
             print("Response: %s" % data)
         return data
 
-def GetLog(commit_id):
-    return RunLog("%s %s" % (PREVIEW, commit_id))
+def GetLog(command, commit_id):
+    return RunLog("%s %s" % (command, commit_id))
 
 def GetMachine(url):
     info = urlparse(url)
@@ -116,12 +116,17 @@ def GetLoginInfoNetrc(url, path):
 
 def ParseArguments(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument('change_num', nargs='+',
+    parser.add_argument('change_num', nargs='*',
                         help = 'ex. 12345, 12345/1')
     parser.add_argument('-u', '--user', nargs=1,
                         help='gerrit user id')
     parser.add_argument('-p', '--password', nargs=1,
                         help='gerrit HTTP password')
+    # https://review.openstack.org/Documentation/user-search.html
+    parser.add_argument('-q', '--query', type=str,
+                        help='gerry command ex. branch:master:merged+after:2018-11-17')
+    parser.add_argument('-r', '--preview', type=str, default=PREVIEW,
+                        help='preview command for changes ex. git log --oneline')
     parser.add_argument('-g', '--gerrit', nargs=1, default=[DEFAULT_GERRIT_SERVER],
                         help='gerrit server url ex. https://gerrit.mycompany.com')
     parser.add_argument('-d', '--dryrun', action='store_true', default=False,
@@ -184,6 +189,17 @@ def GetChangeIdInfo(change_num):
         return None, None
     return change_num, patchset_id
 
+def QueryChanges(opts, rest):
+    query = '/changes/?q=%s' % opts.query
+    response = rest.query(query, opts.verbose)
+    if opts.verbose:
+        print(DELIMITER)
+    if not response:
+        return None
+    for res in reversed(response):
+        print("%s - %s" % (res['_number'], res['subject']))
+        opts.change_num.append(str(res['_number']))
+
 def GetPatchList(opts, rest):
     patch_list = {}
     for input_num in opts.change_num:
@@ -215,7 +231,7 @@ def InstallPatch(opts, remote, ref_id):
         return 1
 
     if opts.dryrun:
-        print(GetLog("FETCH_HEAD"))
+        print(GetLog(opts.preview, "FETCH_HEAD"))
         return 0
 
     return Run("git cherry-pick FETCH_HEAD")
@@ -292,7 +308,13 @@ def main(argv):
         return 1
     
     rest = GerritRest(opts.gerrit[0], opts.user, opts.password)
+    if opts.query:
+        print("Querying change numbers from '%s' ..." % opts.gerrit[0])
+        QueryChanges(opts, rest);
     
+    if not opts.change_num:
+        return 0
+
     print("Getting patches from '%s' ..." % opts.gerrit[0])
     patch_list = GetPatchList(opts, rest)
     if not patch_list:
