@@ -40,9 +40,9 @@ Pick: https://gerrit.mycompany.com/middleware refs/changes/88/7788/1
 
 # Usage
 ```
-usage: pick-patch [-h] [-u USER] [-p PASSWORD] [-g GERRIT] [-d] [-n NETRC]
-                  [-i INSTALL_PATH] [-F] [-N] [-v]
-                  change_num [change_num ...]
+usage: pick-patch [-h] [-u USER] [-p PASSWORD] [-q QUERY] [-r PREVIEW]
+                  [-g GERRIT] [-d] [-n NETRC] [-i INSTALL_PATH] [-F] [-N] [-v]
+                  [change_num [change_num ...]]
 
 positional arguments:
   change_num            ex. 12345, 12345/1
@@ -52,6 +52,11 @@ optional arguments:
   -u USER, --user USER  gerrit user id
   -p PASSWORD, --password PASSWORD
                         gerrit HTTP password
+  -q QUERY, --query QUERY
+                        gerry command ex.
+                        branch:master:merged+after:2018-11-17
+  -r PREVIEW, --preview PREVIEW
+                        preview command for changes ex. git log --oneline
   -g GERRIT, --gerrit GERRIT
                         gerrit server url ex. https://gerrit.mycompany.com
   -d, --dryrun          show what would be done
