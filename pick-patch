@@ -124,9 +124,9 @@ def ParseArguments(argv):
                         help='gerrit HTTP password')
     # https://review.openstack.org/Documentation/user-search.html
     parser.add_argument('-q', '--query', type=str,
-                        help='gerry command ex. branch:master:merged+after:2018-11-17')
+                        help='query command ex. branch:master:merged+after:2018-11-17')
     parser.add_argument('-r', '--preview', type=str, default=PREVIEW,
-                        help='preview command for changes ex. git log --oneline')
+                        help='preview command for changes ex. git log --oneline -1')
     parser.add_argument('-g', '--gerrit', type=str, default=DEFAULT_GERRIT_SERVER,
                         help='gerrit server url ex. https://gerrit.mycompany.com')
     parser.add_argument('-d', '--dryrun', action='store_true', default=False,

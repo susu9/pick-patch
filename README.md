@@ -53,10 +53,10 @@ optional arguments:
   -p PASSWORD, --password PASSWORD
                         gerrit HTTP password
   -q QUERY, --query QUERY
-                        gerry command ex.
+                        query command ex.
                         branch:master:merged+after:2018-11-17
   -r PREVIEW, --preview PREVIEW
-                        preview command for changes ex. git log --oneline
+                        preview command for changes ex. git log --oneline -1
   -g GERRIT, --gerrit GERRIT
                         gerrit server url ex. https://gerrit.mycompany.com
   -d, --dryrun          show what would be done
