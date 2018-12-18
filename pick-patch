@@ -118,22 +118,22 @@ def ParseArguments(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('change_num', nargs='*',
                         help = 'ex. 12345, 12345/1')
-    parser.add_argument('-u', '--user', nargs=1,
+    parser.add_argument('-u', '--user', type=str,
                         help='gerrit user id')
-    parser.add_argument('-p', '--password', nargs=1,
+    parser.add_argument('-p', '--password', type=str,
                         help='gerrit HTTP password')
     # https://review.openstack.org/Documentation/user-search.html
     parser.add_argument('-q', '--query', type=str,
                         help='gerry command ex. branch:master:merged+after:2018-11-17')
     parser.add_argument('-r', '--preview', type=str, default=PREVIEW,
                         help='preview command for changes ex. git log --oneline')
-    parser.add_argument('-g', '--gerrit', nargs=1, default=[DEFAULT_GERRIT_SERVER],
+    parser.add_argument('-g', '--gerrit', type=str, default=DEFAULT_GERRIT_SERVER,
                         help='gerrit server url ex. https://gerrit.mycompany.com')
     parser.add_argument('-d', '--dryrun', action='store_true', default=False,
                         help='show what would be done')
-    parser.add_argument('-n', '--netrc', nargs=1, default=[DEFAULT_NETRC_PATH],
+    parser.add_argument('-n', '--netrc', type=str, default=DEFAULT_NETRC_PATH,
                         help='assign netrc path ex. ~/.netrc')
-    parser.add_argument('-i', '--install-path', nargs=1, default='',
+    parser.add_argument('-i', '--install-path', type=str, default='',
                         help='assign install path rather than resolving from repo command')
     parser.add_argument('-F', '--full-path', action='store_true', default=False,
                         help='display the full install path instead of the relative install path')
@@ -268,7 +268,7 @@ def InstallPatches(opts, project, patches):
         path = RunLog("%s list -p %s" % (REPO, project), silent=True)
         full_path = RunLog("%s list -pf %s" % (REPO, project), silent=True)
     else:
-        path  = opts.install_path[0]
+        path  = opts.install_path
         full_path = os.path.abspath(path)
 
     if not CheckInstallPath(full_path, project, patches):
@@ -303,19 +303,19 @@ def main(argv):
     opts = ParseArguments(argv)
     
     if not opts.user and not opts.password:
-        (opts.user, opts.password) = GetLoginInfoNetrc(opts.gerrit[0], opts.netrc[0])
+        (opts.user, opts.password) = GetLoginInfoNetrc(opts.gerrit, opts.netrc)
     if not opts.user and not opts.password:
         return 1
     
-    rest = GerritRest(opts.gerrit[0], opts.user, opts.password)
+    rest = GerritRest(opts.gerrit, opts.user, opts.password)
     if opts.query:
-        print("Querying change numbers from '%s' ..." % opts.gerrit[0])
+        print("Querying change numbers from '%s' ..." % opts.gerrit)
         QueryChanges(opts, rest);
     
     if not opts.change_num:
         return 0
 
-    print("Getting patches from '%s' ..." % opts.gerrit[0])
+    print("Getting patches from '%s' ..." % opts.gerrit)
     patch_list = GetPatchList(opts, rest)
     if not patch_list:
         return 1
