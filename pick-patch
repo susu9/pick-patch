@@ -73,12 +73,8 @@ class GerritRest:
         url = "%s/a%s" % (self.server, q)
         if verbose:
             print("Query: %s" % url)
-        try:
-            req = urllib.request.Request(url, None, headers)
-            response = urllib.request.urlopen(req, None, CONNECT_TIMEOUT)
-        except Exception as e:
-            Loge("query fail: %s" % e)
-            return None
+        req = urllib.request.Request(url, None, headers)
+        response = urllib.request.urlopen(req, None, CONNECT_TIMEOUT)
         # skip )]}'
         response.readline()
         data = json.loads(response.read().decode("UTF-8"))
@@ -191,7 +187,11 @@ def GetChangeIdInfo(change_num):
 
 def QueryChanges(opts, rest):
     query = '/changes/?q=%s' % opts.query
-    response = rest.query(query, opts.verbose)
+    try:
+        response = rest.query(query, opts.verbose)
+    except Exception as e:
+        Loge("query fail: %s" % e)
+        return 1
     if opts.verbose:
         print(DELIMITER)
     if not response:
@@ -203,6 +203,7 @@ def QueryChanges(opts, rest):
         print("%8s - %s" % (res['_number'], res['subject']))
     print("(Total: %d changes)" % len(response))
     print(DELIMITER)
+    return 0
 
 def GetPatchList(opts, rest):
     patch_list = {}
@@ -213,7 +214,11 @@ def GetPatchList(opts, rest):
             return None
 
         query = '/changes/?q=%s&o=%s' % (change_num, "CURRENT_REVISION")
-        response = rest.query(query, opts.verbose)
+        try:
+            response = rest.query(query, opts.verbose)
+        except Exception as e:
+            Loge("query fail: %s" % e)
+            return None
         if opts.verbose:
             print(DELIMITER)
         if not response:
@@ -314,7 +319,8 @@ def main(argv):
     rest = GerritRest(opts.gerrit, opts.user, opts.password)
     if opts.query:
         print("Querying change numbers from '%s' ..." % opts.gerrit)
-        QueryChanges(opts, rest);
+        if QueryChanges(opts, rest):
+            return 1
     
     if not opts.change_num:
         return 0
