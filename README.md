@@ -54,7 +54,7 @@ optional arguments:
                         gerrit HTTP password
   -q QUERY, --query QUERY
                         query command ex.
-                        branch:master:merged+after:2018-11-17
+                        branch:master+status:merged+after:2018-11-17
   -r PREVIEW, --preview PREVIEW
                         preview command for changes ex. git log --oneline -1
   -g GERRIT, --gerrit GERRIT
@@ -67,7 +67,7 @@ optional arguments:
                         command
   -F, --full-path       display the full install path instead of the relative
                         install path
-  -N, --name-path       display the repository name instead of the relative
+  -N, --name-path       display the project name instead of the relative
                         install path
   -v, --verbose         show more logs
 ```
