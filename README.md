@@ -41,7 +41,8 @@ Pick: https://gerrit.mycompany.com/middleware refs/changes/88/7788/1
 # Usage
 ```
 usage: pick-patch [-h] [-u USER] [-p PASSWORD] [-q QUERY] [-r PREVIEW]
-                  [-g GERRIT] [-d] [-n NETRC] [-i INSTALL_PATH] [-F] [-N] [-v]
+                  [-g GERRIT] [-d] [-n NETRC] [-i INSTALL_PATH] [-F] [-N]
+                  [-x EXEC] [-v]
                   [change_num [change_num ...]]
 
 positional arguments:
@@ -69,5 +70,7 @@ optional arguments:
                         install path
   -N, --name-path       display the project name instead of the relative
                         install path
+  -x EXEC, --exec EXEC  append command after all changes installed in each
+                        project
   -v, --verbose         show more logs
 ```

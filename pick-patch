@@ -39,12 +39,13 @@ def Logm(s):
     print(GREEN + s + NONE)
 
 def Run(cmd):
-    return subprocess.call(cmd.split(' '))
+    return subprocess.call(cmd, shell=True)
 
 def RunLog(cmd, silent=False):
     try:
-        ret = subprocess.check_output(cmd.split(' '),
-                                      stderr=subprocess.STDOUT)
+        ret = subprocess.check_output(cmd,
+                                      stderr=subprocess.STDOUT,
+                                      shell=True)
         return ret.decode('UTF-8').rstrip()
     except Exception as e:
         if not silent:
@@ -135,6 +136,8 @@ def ParseArguments(argv):
                         help='display the full install path instead of the relative install path')
     parser.add_argument('-N', '--name-path', action='store_true', default=False,
                         help='display the project name instead of the relative install path')
+    parser.add_argument('-x', '--exec', type=str,
+                        help='append command after all changes installed in each project')
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
                         help='show more logs')
     return parser.parse_args(argv[1:])
@@ -305,6 +308,8 @@ def InstallPatches(opts, project, patches):
             Loge("error: pick fail (unfinished: %s)" % GetInputNums(patches, i))
             fail = 1
             break
+    if not fail and opts.exec:
+        Run(opts.exec)
     os.chdir(CUR_PATH)
     return fail
 
