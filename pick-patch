@@ -245,10 +245,10 @@ def InstallPatch(opts, remote, ref_id):
 
     return Run("git cherry-pick FETCH_HEAD")
 
-def GetInputNums(patches):
+def GetInputNums(patches, start = 0):
     ret = ""
-    for patch in patches:
-        ret += patch['input_num'] + " "
+    for i in range(start, len(patches)):
+        ret += patches[i]['input_num'] + " "
     return ret.rstrip()
 
 def CheckInstallPath(full_path, project, patches):
@@ -293,7 +293,7 @@ def InstallPatches(opts, project, patches):
 
     os.chdir(full_path)
     fail = 0
-    for patch in patches:
+    for i, patch in enumerate(patches):
         remote = patch['remote']
         ref_id = patch['ref']
 
@@ -302,7 +302,7 @@ def InstallPatches(opts, project, patches):
         ret = InstallPatch(opts, remote, ref_id)
         print(DELIMITER)
         if ret:
-            Loge("error: pick fail")
+            Loge("error: pick fail (unfinished: %s)" % GetInputNums(patches, i))
             fail = 1
             break
     os.chdir(CUR_PATH)
