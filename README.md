@@ -37,6 +37,10 @@ Pick: https://gerrit.mycompany.com/middleware refs/changes/88/7788/1
 ...
 ------------------------------------------------------------
 ```
+# Configuration
+1. Get user name and http password in gerrit setting webpage (ex. https://review.gerrithub.io/settings/#HTTPCredentials)
+2. Add user name and http password in ~/.netrc (ex. machine review.gerrithub.io login susu9 password XXXOOOXXXOO)
+3. Now you are good to use the script. (script parses ~/.netrc by default)
 
 # Usage
 ```
