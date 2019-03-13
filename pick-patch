@@ -189,7 +189,7 @@ def GetChangeIdInfo(change_num):
     return change_num, patchset_id
 
 def QueryChanges(opts, rest):
-    query = '/changes/?q=%s' % opts.query
+    query = '/changes/?q=%s' % opts.query.replace(' ', '+');
     try:
         response = rest.query(query, opts.verbose)
     except Exception as e:
@@ -324,6 +324,7 @@ def main(argv):
     rest = GerritRest(opts.gerrit, opts.user, opts.password)
     if opts.query:
         print("Querying change numbers from '%s' ..." % opts.gerrit)
+        print("Search for '%s'" % opts.query)
         if QueryChanges(opts, rest):
             return 1
     
