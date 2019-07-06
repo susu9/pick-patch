@@ -54,7 +54,7 @@ def RunLog(cmd, silent=False):
         ret = subprocess.check_output(cmd,
                                       stderr=subprocess.STDOUT,
                                       shell=True)
-        return ret.decode('UTF-8').rstrip()
+        return ret.decode('utf-8').rstrip()
     except Exception as e:
         if not silent:
             print(e)
@@ -91,7 +91,7 @@ class GerritRest:
         response = request.urlopen(req, None, CONNECT_TIMEOUT)
         # skip )]}'
         response.readline()
-        data = json.loads(response.read().decode("UTF-8"))
+        data = json.loads(response.read().decode("utf-8"))
         if verbose:
             print("Response: %s" % data)
         return data
