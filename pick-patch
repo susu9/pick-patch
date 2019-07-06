@@ -13,9 +13,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys, os, urllib.request, netrc, json, subprocess, argparse
+import sys, os, netrc, json, subprocess, argparse
 import ssl
-from urllib.parse import urlparse
+
+try:
+    from urllib.parse import urlparse, urlencode
+    from urllib.error import HTTPError
+    import urllib.request as request
+except ImportError:
+    from urlparse import urlparse
+    from urllib import urlencode
+    import urllib2 as request
 
 # ------ Customization ------
 REPO = 'repo'
@@ -56,12 +64,12 @@ class GerritRest:
     # https://github.com/GerritCodeReview/gerrit/blob/master/Documentation/rest-api.txt
     def __init__(self, url, username, password):
         url = url.rstrip('/')
-        password_mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
+        password_mgr = request.HTTPPasswordMgrWithDefaultRealm()
         password_mgr.add_password(None, url, username, password)
-        digest_auth = urllib.request.HTTPDigestAuthHandler(password_mgr)
-        basic_auth = urllib.request.HTTPBasicAuthHandler(password_mgr)
-        opener = urllib.request.build_opener(digest_auth, basic_auth)
-        urllib.request.install_opener(opener)
+        digest_auth = request.HTTPDigestAuthHandler(password_mgr)
+        basic_auth = request.HTTPBasicAuthHandler(password_mgr)
+        opener = request.build_opener(digest_auth, basic_auth)
+        request.install_opener(opener)
         self.server = url
 
     def query(self, q, verbose=False):
@@ -74,8 +82,8 @@ class GerritRest:
         url = "%s/a%s" % (self.server, q)
         if verbose:
             print("Query: %s" % url)
-        req = urllib.request.Request(url, None, headers)
-        response = urllib.request.urlopen(req, None, CONNECT_TIMEOUT)
+        req = request.Request(url, None, headers)
+        response = request.urlopen(req, None, CONNECT_TIMEOUT)
         # skip )]}'
         response.readline()
         data = json.loads(response.read().decode("UTF-8"))
@@ -136,7 +144,7 @@ def ParseArguments(argv):
                         help='display the full install path instead of the relative install path')
     parser.add_argument('-N', '--name-path', action='store_true', default=False,
                         help='display the project name instead of the relative install path')
-    parser.add_argument('-x', '--exec', type=str,
+    parser.add_argument('-x', '--exec', dest='exe', type=str,
                         help='append command after all changes installed in each project')
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
                         help='show more logs')
@@ -308,8 +316,8 @@ def InstallPatches(opts, project, patches):
             Loge("error: pick fail (unfinished: %s)" % GetInputNums(patches, i))
             fail = 1
             break
-    if not fail and opts.exec:
-        Run(opts.exec)
+    if not fail and opts.exe:
+        Run(opts.exe)
     os.chdir(CUR_PATH)
     return fail
 
