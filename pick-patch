@@ -78,7 +78,12 @@ class GerritRest:
             "Content-Type": "application/json;charset=UTF-8"
         }
 
-        ssl._create_default_https_context = ssl._create_unverified_context
+        try:
+            _create_unverified_https_context = ssl._create_unverified_context
+        except AttributeError:
+            pass
+        else:
+            ssl._create_default_https_context = _create_unverified_https_context
         url = "%s/a%s" % (self.server, q)
         if verbose:
             print("Query: %s" % url)
