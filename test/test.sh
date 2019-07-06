@@ -1,10 +1,14 @@
 #!/bin/bash
-testHelp() {
-    python3 pick-patch --help
+testBasic() {
+    python pick-patch --help
     assertEquals 0 $? 
 }
 
 testPick() {
-    python3 pick-patch -g https://review.gerrithub.io -d -i . 460654
+    if [ ! -e "~/.netrc" ]; then
+        python pick-patch -u susu9 -p ${GERRITHUB_API_PASSWORD} -g https://review.gerrithub.io -d -i . 460654
+    else
+        python pick-patch -g https://review.gerrithub.io -d -i . 460654
+    fi
     assertEquals 0 $? 
 }

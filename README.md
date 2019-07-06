@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/susu9/pick-patch.svg?branch=master)](https://travis-ci.com/susu9/pick-patch)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/susu9/pick-patch/blob/master/COPYING)
 # pick-patch
 Help you cherry pick patches from Gerrit server
 
