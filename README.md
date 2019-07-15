@@ -47,7 +47,7 @@ Pick: https://gerrit.mycompany.com/middleware refs/changes/88/7788/1
 3. Now you are good to go. (script parses ~/.netrc by default)
 
 # Example
-```
+```shell
 # Get patch https://review.gerrithub.io/c/susu9/pick-patch/+/460654
 pick-patch -g https://review.gerrithub.io -i . 460654
 # Use alias shortcut
