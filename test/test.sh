@@ -1,4 +1,5 @@
 #!/bin/bash
+# Usage: shunit2 test.sh
 
 init_netrc() {
     if [ -e ~/.netrc ]; then
