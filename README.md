@@ -58,8 +58,8 @@ pick-hub -i . 460654
 # Usage
 ```
 usage: pick-patch [-h] [-u USER] [-p PASSWORD] [-q QUERY] [-r PREVIEW]
-                  [-g GERRIT] [-d] [-n NETRC] [-i INSTALL_PATH] [-F] [-N]
-                  [-x EXEC] [-v]
+                  [-g GERRIT] [-d] [-n NETRC_FILE] [-m NAME.xml]
+                  [-i INSTALL_PATH] [-F] [-N] [-x EXE] [-v]
                   [change_num [change_num ...]]
 
 positional arguments:
@@ -75,19 +75,24 @@ optional arguments:
                         branch:master+status:merged+after:2018-11-17
   -r PREVIEW, --preview PREVIEW
                         preview command for changes ex. git log --oneline -1
+                        (default: git log --no-decorate -1)
   -g GERRIT, --gerrit GERRIT
                         gerrit server url ex. https://gerrit.mycompany.com
+                        (default: TBD)
   -d, --dryrun          show what would be done
-  -n NETRC, --netrc NETRC
-                        assign netrc path ex. ~/.netrc
+  -n NETRC_FILE, --netrc-file NETRC_FILE
+                        netrc path (default: ~/.netrc)
+  -m NAME.xml, --manifest NAME.xml
+                        assign manifest file to resolve patch install path
+                        instead of using repo command
   -i INSTALL_PATH, --install-path INSTALL_PATH
-                        assign install path rather than resolving from repo
-                        command
+                        assign patch install path instead of resolving path by
+                        repo command or manifest
   -F, --full-path       display the full install path instead of the relative
                         install path
   -N, --name-path       display the project name instead of the relative
                         install path
-  -x EXEC, --exec EXEC  append command after all changes installed in each
+  -x EXE, --exec EXE    append command after all changes installed in each
                         project
   -v, --verbose         show more logs
 ```
