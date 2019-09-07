@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.com/susu9/pick-patch.svg?branch=master)](https://travis-ci.com/susu9/pick-patch)
-[![Python Compatibility](https://img.shields.io/badge/python-2.7%20%7C%203.3%20%7C%203.4%20%7C%203.5%20%7C%203.6-blue.svg)](https://travis-ci.com/susu9/pick-patch)
+[![Python Compatibility](https://img.shields.io/badge/python-2.7%20%7C%203.4%20%7C%203.5%20%7C%203.6%20%7C%203.7-blue.svg)](https://travis-ci.com/susu9/pick-patch)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/susu9/pick-patch.svg)
 ![GitHub](https://img.shields.io/github/license/susu9/pick-patch.svg)
 # pick-patch
