@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import sys, os, netrc, json, subprocess, argparse
+import xml.etree.ElementTree as etree
 import ssl
 
 try:
@@ -143,6 +144,8 @@ def ParseArguments(argv):
                         help='show what would be done')
     parser.add_argument('-n', '--netrc', type=str, default=DEFAULT_NETRC_PATH,
                         help='assign netrc path ex. ~/.netrc')
+    parser.add_argument('-m', '--manifest', type=str,
+                        help='manifest file to resolve install path')
     parser.add_argument('-i', '--install-path', type=str, default='',
                         help='assign install path rather than resolving from repo command')
     parser.add_argument('-F', '--full-path', action='store_true', default=False,
@@ -288,12 +291,16 @@ WARNING: %s
     print(DELIMITER)
     return False
 
-def InstallPatches(opts, project, patches):
-    if not opts.install_path:
+def InstallPatches(opts, project, patches, root):
+    if opts.manifest:
+        ele = root.find("./project[@name='%s']" % project)
+        path = ele.get('path') if ele is not None else None
+        full_path = os.path.abspath(path) if path is not None else None
+    elif not opts.install_path:
         path = RunLog("%s list -p %s" % (REPO, project), silent=True)
         full_path = RunLog("%s list -pf %s" % (REPO, project), silent=True)
     else:
-        path  = opts.install_path
+        path = opts.install_path
         full_path = os.path.abspath(path)
 
     if not CheckInstallPath(full_path, project, patches):
@@ -344,6 +351,14 @@ def main(argv):
     if not opts.change_num:
         return 0
 
+    root = None;
+    if opts.manifest:
+        try:
+            root = etree.parse(opts.manifest).getroot()
+        except Exception as e:
+            print(e)
+            return 1
+
     print("Getting patches from '%s' ..." % opts.gerrit)
     patch_list = GetPatchList(opts, rest)
     if not patch_list:
@@ -352,7 +367,7 @@ def main(argv):
     print("Installing patches ...")
     ret = 0
     for project, patches in patch_list.items():
-        if InstallPatches(opts, project, patches):
+        if InstallPatches(opts, project, patches, root):
             ret = 1
     return ret
 
