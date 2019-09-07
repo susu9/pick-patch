@@ -110,17 +110,17 @@ def GetMachine(url):
 def GetLoginInfoNetrc(url, path):
     path = os.path.expanduser(path)
     if not os.path.isfile(path):
-        Loge("Can't find netrc path '%s'" % (path))
+        print("Can't find netrc path '%s'" % (path))
         return None, None
 
     handle = netrc.netrc(path)
     machine = GetMachine(url)
     if not machine:
-        Loge("Can't find machine name from '%s' for netrc" % (url))
+        print("Can't find machine name in '%s' for netrc" % (url))
         return None, None
     info = handle.authenticators(machine)
     if not info:
-        Loge("Can't find machine '%s' in '%s'" % (machine, path))
+        print("Can't find machine '%s' in '%s'" % (machine, path))
         return None, None
     (login, account, password) = info
     return (login, password)
@@ -137,17 +137,17 @@ def ParseArguments(argv):
     parser.add_argument('-q', '--query', type=str,
                         help='query command ex. branch:master+status:merged+after:2018-11-17')
     parser.add_argument('-r', '--preview', type=str, default=PREVIEW,
-                        help='preview command for changes ex. git log --oneline -1')
+                        help='preview command for changes ex. git log --oneline -1 (default: %s)' % PREVIEW)
     parser.add_argument('-g', '--gerrit', type=str, default=DEFAULT_GERRIT_SERVER,
-                        help='gerrit server url ex. https://gerrit.mycompany.com')
+                        help='gerrit server url ex. https://gerrit.mycompany.com (default: %s)' % DEFAULT_GERRIT_SERVER)
     parser.add_argument('-d', '--dryrun', action='store_true', default=False,
                         help='show what would be done')
-    parser.add_argument('-n', '--netrc', type=str, default=DEFAULT_NETRC_PATH,
-                        help='assign netrc path ex. ~/.netrc')
-    parser.add_argument('-m', '--manifest', type=str,
-                        help='manifest file to resolve install path')
+    parser.add_argument('-n', '--netrc-file', type=str, default=DEFAULT_NETRC_PATH,
+                        help='netrc path (default: %s)' % DEFAULT_NETRC_PATH)
+    parser.add_argument('-m', '--manifest', type=str, metavar='NAME.xml',
+                        help='assign manifest file to resolve patch install path instead of using repo command')
     parser.add_argument('-i', '--install-path', type=str, default='',
-                        help='assign install path rather than resolving from repo command')
+                        help='assign patch install path instead of resolving path by repo command or manifest')
     parser.add_argument('-F', '--full-path', action='store_true', default=False,
                         help='display the full install path instead of the relative install path')
     parser.add_argument('-N', '--name-path', action='store_true', default=False,
@@ -156,7 +156,18 @@ def ParseArguments(argv):
                         help='append command after all changes installed in each project')
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
                         help='show more logs')
-    return parser.parse_args(argv[1:])
+    opts = parser.parse_args(argv[1:])
+
+    if not opts.change_num and not opts.query:
+        parser.print_help()
+        return None
+
+    if not opts.user and not opts.password:
+        (opts.user, opts.password) = GetLoginInfoNetrc(opts.gerrit, opts.netrc_file)
+    if not opts.user and not opts.password:
+        print ("Please assign user name and password")
+        return None
+    return opts
 
 def ChangeIdToRefId(change_num, patchset_id):
     hash_id = str(int(change_num) % 100)
@@ -270,10 +281,11 @@ def GetInputNums(patches, start = 0):
         ret += patches[i]['input_num'] + " "
     return ret.rstrip()
 
-def CheckInstallPath(full_path, project, patches):
+def CheckInstallPath(full_path, project, patches, opts):
+    method = "manifest '%s'" % opts.manifest if opts.manifest else "command '%s list'" % REPO
     error_msg = "The install path for the project can't be found."
     if not full_path:
-        error_msg = "The install path can't be resolved from command '%s list'." % REPO
+        error_msg = "The install path can't be resolved by %s" % method
     elif not os.path.exists(full_path):
         error_msg = "The install path '%s' is not found." % full_path
     else:
@@ -282,7 +294,7 @@ def CheckInstallPath(full_path, project, patches):
     Loge("[Project: %s]" % project)
     print('''\
 WARNING: %s
-    (use '-i INSTALL_PATH' for '%s' to assign right path)
+    (use '-i INSTALL_PATH' for '%s' to assign the right path)
     (use the following commands manually in the right path)''' % (error_msg,
                                                                   GetInputNums(patches)))
     print(DELIMITER)
@@ -292,18 +304,18 @@ WARNING: %s
     return False
 
 def InstallPatches(opts, project, patches, root):
-    if opts.manifest:
+    if opts.install_path:
+        path = opts.install_path
+        full_path = os.path.abspath(path)
+    elif opts.manifest:
         ele = root.find("./project[@name='%s']" % project)
         path = ele.get('path') if ele is not None else None
         full_path = os.path.abspath(path) if path is not None else None
-    elif not opts.install_path:
+    else:
         path = RunLog("%s list -p %s" % (REPO, project), silent=True)
         full_path = RunLog("%s list -pf %s" % (REPO, project), silent=True)
-    else:
-        path = opts.install_path
-        full_path = os.path.abspath(path)
 
-    if not CheckInstallPath(full_path, project, patches):
+    if not CheckInstallPath(full_path, project, patches, opts):
         return 1
 
     if opts.full_path:
@@ -335,10 +347,7 @@ def InstallPatches(opts, project, patches, root):
 
 def main(argv):
     opts = ParseArguments(argv)
-    
-    if not opts.user and not opts.password:
-        (opts.user, opts.password) = GetLoginInfoNetrc(opts.gerrit, opts.netrc)
-    if not opts.user and not opts.password:
+    if not opts:
         return 1
     
     rest = GerritRest(opts.gerrit, opts.user, opts.password)
@@ -348,15 +357,12 @@ def main(argv):
         if QueryChanges(opts, rest):
             return 1
     
-    if not opts.change_num:
-        return 0
-
     root = None;
     if opts.manifest:
         try:
             root = etree.parse(opts.manifest).getroot()
         except Exception as e:
-            print(e)
+            print("Manifest '%s' parse error: %s" % (opts.manifest, e))
             return 1
 
     print("Getting patches from '%s' ..." % opts.gerrit)
