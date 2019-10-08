@@ -36,7 +36,36 @@ Pick: https://gerrit.mycompany.com/middleware refs/changes/66/5566/3
 ...
 ------------------------------------------------------------
 [app]
-Pick: https://gerrit.mycompany.com/middleware refs/changes/88/7788/1
+Pick: https://gerrit.mycompany.com/app refs/changes/88/7788/1
+------------------------------------------------------------
+...
+------------------------------------------------------------
+```
+3. Support gerrit search changes and cherry pick
+```
+$pick-patch -g https://gerrit.mycompany.com -q 'branch:master after:"2018-01-01"'
+Querying change numbers from 'https://gerrit.mycompany.com' ...
+Search for 'branch:master after:"2018-01-01"'
+--------------------------------------------------------------------------------
+  1234 - kernel: add defconfig
+  5566 - middleware: fix playback issue
+  7788 - app: Update UI
+(Total: 3 changes)
+--------------------------------------------------------------------------------
+Getting patches from 'https://gerrit.mycompany.com' ...
+Installing patches ...
+[kernel]
+Pick: https://gerrit.mycompany.com/kernel refs/changes/34/1234/5
+------------------------------------------------------------
+...
+------------------------------------------------------------
+[middleware]
+Pick: https://gerrit.mycompany.com/middleware refs/changes/66/5566/3
+------------------------------------------------------------
+...
+------------------------------------------------------------
+[app]
+Pick: https://gerrit.mycompany.com/app refs/changes/88/7788/2
 ------------------------------------------------------------
 ...
 ------------------------------------------------------------
@@ -63,7 +92,7 @@ usage: pick-patch [-h] [-u USER] [-p PASSWORD] [-q QUERY] [-r PREVIEW]
                   [change_num [change_num ...]]
 
 positional arguments:
-  change_num            ex. 12345, 12345/1
+  change_num            ex. '12345', '12345/1'
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -71,14 +100,14 @@ optional arguments:
   -p PASSWORD, --password PASSWORD
                         gerrit HTTP password
   -q QUERY, --query QUERY
-                        query command ex.
-                        branch:master+status:merged+after:2018-11-17
+                        query command ex. 'branch:master status:merged
+                        after:"2018-11-17 22:06:00"'
   -r PREVIEW, --preview PREVIEW
-                        preview command for changes ex. git log --oneline -1
+                        preview command for changes ex. 'git log --oneline -1'
                         (default: git log --no-decorate -1)
   -g GERRIT, --gerrit GERRIT
-                        gerrit server url ex. https://gerrit.mycompany.com
-                        (default: TBD)
+                        gerrit server url ex. 'https://gerrit.mycompany.com
+                        (default: TBD)'
   -d, --dryrun          show what would be done
   -n NETRC_FILE, --netrc-file NETRC_FILE
                         netrc path (default: ~/.netrc)
