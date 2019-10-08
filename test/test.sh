@@ -20,3 +20,8 @@ testPick() {
     assertEquals 0 $? 
 }
 
+testQuery() {
+    init_netrc
+    python pick-patch -g https://review.gerrithub.io -d -i . -q 'owner:"Rick chang" after:"2019-07-05 22:00:00 -0700"'
+    assertEquals 0 $?
+}

@@ -18,12 +18,12 @@ import xml.etree.ElementTree as etree
 import ssl
 
 try:
-    from urllib.parse import urlparse, urlencode
+    from urllib.parse import urlparse, urlencode, quote
     from urllib.error import HTTPError
     import urllib.request as request
 except ImportError:
     from urlparse import urlparse
-    from urllib import urlencode
+    from urllib import urlencode, quote
     import urllib2 as request
 
 # ------ Customization ------
@@ -128,18 +128,18 @@ def GetLoginInfoNetrc(url, path):
 def ParseArguments(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('change_num', nargs='*',
-                        help = 'ex. 12345, 12345/1')
+                        help = 'ex. \'12345\', \'12345/1\'')
     parser.add_argument('-u', '--user', type=str,
                         help='gerrit user id')
     parser.add_argument('-p', '--password', type=str,
                         help='gerrit HTTP password')
     # https://review.openstack.org/Documentation/user-search.html
     parser.add_argument('-q', '--query', type=str,
-                        help='query command ex. branch:master+status:merged+after:2018-11-17')
+                        help='query command ex. \'branch:master status:merged after:"2018-11-17 22:06:00"\'')
     parser.add_argument('-r', '--preview', type=str, default=PREVIEW,
-                        help='preview command for changes ex. git log --oneline -1 (default: %s)' % PREVIEW)
+                        help='preview command for changes ex. \'git log --oneline -1\' (default: %s)' % PREVIEW)
     parser.add_argument('-g', '--gerrit', type=str, default=DEFAULT_GERRIT_SERVER,
-                        help='gerrit server url ex. https://gerrit.mycompany.com (default: %s)' % DEFAULT_GERRIT_SERVER)
+                        help='gerrit server url ex. \'https://gerrit.mycompany.com (default: %s)\'' % DEFAULT_GERRIT_SERVER)
     parser.add_argument('-d', '--dryrun', action='store_true', default=False,
                         help='show what would be done')
     parser.add_argument('-n', '--netrc-file', type=str, default=DEFAULT_NETRC_PATH,
@@ -216,7 +216,7 @@ def GetChangeIdInfo(change_num):
     return change_num, patchset_id
 
 def QueryChanges(opts, rest):
-    query = '/changes/?q=%s' % opts.query.replace(' ', '+');
+    query = '/changes/?q=%s' % quote(opts.query);
     try:
         response = rest.query(query, opts.verbose)
     except Exception as e:
@@ -332,7 +332,10 @@ def InstallPatches(opts, project, patches, root):
         remote = patch['remote']
         ref_id = patch['ref']
 
-        print("Pick: %s %s" % (remote, ref_id))
+        if opts.dryrun:
+            print("(dryrun) Pick: %s %s" % (remote, ref_id))
+        else:
+            print("Pick: %s %s" % (remote, ref_id))
         print(DELIMITER)
         ret = InstallPatch(opts, remote, ref_id)
         print(DELIMITER)
