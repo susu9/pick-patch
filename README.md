@@ -86,8 +86,8 @@ pick-hub -i . 460654
 
 # Usage
 ```
-usage: pick-patch [-h] [-u USER] [-p PASSWORD] [-q QUERY] [-r PREVIEW]
-                  [-g GERRIT] [-d] [-n NETRC_FILE] [-m NAME.xml]
+usage: pick-patch [-h] [-u USER] [-p PASSWORD] [-q QUERY] [--query-only]
+                  [-r PREVIEW] [-g GERRIT] [-d] [-n NETRC_FILE] [-m NAME.xml]
                   [-i INSTALL_PATH] [-F] [-N] [-x EXE] [-v]
                   [change_num [change_num ...]]
 
@@ -102,6 +102,7 @@ optional arguments:
   -q QUERY, --query QUERY
                         query command ex. 'branch:master status:merged
                         after:"2018-11-17 22:06:00"'
+  --query-only          do not install patch
   -r PREVIEW, --preview PREVIEW
                         preview command for changes ex. 'git log --oneline -1'
                         (default: git log --no-decorate -1)

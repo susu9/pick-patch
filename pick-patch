@@ -136,6 +136,8 @@ def ParseArguments(argv):
     # https://review.openstack.org/Documentation/user-search.html
     parser.add_argument('-q', '--query', type=str,
                         help='query command ex. \'branch:master status:merged after:"2018-11-17 22:06:00"\'')
+    parser.add_argument('--query-only', action='store_true', default=False,
+                        help='do not install patch')
     parser.add_argument('-r', '--preview', type=str, default=PREVIEW,
                         help='preview command for changes ex. \'git log --oneline -1\' (default: %s)' % PREVIEW)
     parser.add_argument('-g', '--gerrit', type=str, default=DEFAULT_GERRIT_SERVER,
@@ -359,7 +361,10 @@ def main(argv):
         print("Search for '%s'" % opts.query)
         if QueryChanges(opts, rest):
             return 1
-    
+
+    if opts.query_only:
+        return 0
+
     root = None;
     if opts.manifest:
         try:
