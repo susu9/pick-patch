@@ -10,8 +10,21 @@ Help you cherry pick patches from Gerrit server
 ```shell
 pip install pick-patch
 ```
+# Configuration
+1. Get user name and http password in gerrit setting webpage (ex. https://review.gerrithub.io/settings/#HTTPCredentials)
+2. Add user name and http password in ~/.netrc (ex. machine review.gerrithub.io login susu9 password XXXOOOXXXOO)
+3. Now you are good to go. (script parses ~/.netrc by default)
 
-# Setup
+# Example
+```shell
+# Get patch https://review.gerrithub.io/c/susu9/pick-patch/+/460654
+pick-patch -g https://review.gerrithub.io -i . 460654
+# Use alias shortcut
+alias pick-hub='pick-patch -g https://review.gerrithub.io'
+pick-hub -i . 460654
+```
+
+# Custimization
 You may want to customize following variables in pick-patch
 ```
 REPO = 'repo'
@@ -75,19 +88,6 @@ Pick: https://gerrit.mycompany.com/app refs/changes/88/7788/2
 ------------------------------------------------------------
 ...
 ------------------------------------------------------------
-```
-# Configuration
-1. Get user name and http password in gerrit setting webpage (ex. https://review.gerrithub.io/settings/#HTTPCredentials)
-2. Add user name and http password in ~/.netrc (ex. machine review.gerrithub.io login susu9 password XXXOOOXXXOO)
-3. Now you are good to go. (script parses ~/.netrc by default)
-
-# Example
-```shell
-# Get patch https://review.gerrithub.io/c/susu9/pick-patch/+/460654
-pick-patch -g https://review.gerrithub.io -i . 460654
-# Use alias shortcut
-alias pick-hub='pick-patch -g https://review.gerrithub.io'
-pick-hub -i . 460654
 ```
 
 # Usage
