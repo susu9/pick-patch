@@ -5,6 +5,9 @@
 # pick-patch
 Help you cherry pick patches from Gerrit server
 
+# Installation
+pip install pick-patch
+
 # Setup
 You may want to customize following variables in pick-patch
 ```
