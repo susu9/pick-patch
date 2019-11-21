@@ -1,4 +1,4 @@
-[![Pypi version](https://img.shields.io/pypi/v/pick-patch)](https://pypi.org/project/pick-patch/1.0/#description)
+[![Pypi version](https://img.shields.io/pypi/v/pick-patch)](https://pypi.org/project/pick-patch/)
 [![Build Status](https://travis-ci.com/susu9/pick-patch.svg?branch=master)](https://travis-ci.com/susu9/pick-patch)
 [![Python Compatibility](https://img.shields.io/pypi/pyversions/pick-patch)](https://travis-ci.com/susu9/pick-patch)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/susu9/pick-patch.svg)
