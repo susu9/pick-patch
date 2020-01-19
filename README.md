@@ -95,7 +95,7 @@ Pick: https://gerrit.mycompany.com/app refs/changes/88/7788/2
 ```
 usage: pick-patch [-h] [-u USER] [-p PASSWORD] [-q QUERY] [--query-only]
                   [-r PREVIEW] [-g GERRIT] [-d] [-n NETRC_FILE] [-m NAME.xml]
-                  [-i INSTALL_PATH] [-F] [-N] [-x EXE] [-v]
+                  [-i INSTALL_PATH] [-F] [-N] [-x EXE] [--verbose] [-v]
                   [change_num [change_num ...]]
 
 positional arguments:
@@ -131,5 +131,6 @@ optional arguments:
                         install path
   -x EXE, --exec EXE    append command after all changes installed in each
                         project
-  -v, --verbose         show more logs
+  --verbose             show more logs
+  -v, --version         show program's version number and exit
 ```

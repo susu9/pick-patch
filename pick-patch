@@ -166,12 +166,13 @@ def ParseArguments(argv):
                         help='display the project name instead of the relative install path')
     parser.add_argument('-x', '--exec', dest='exe', type=str,
                         help='append command after all changes installed in each project')
-    parser.add_argument('-v', '--verbose', action='store_true', default=False,
+    parser.add_argument('--verbose', action='store_true', default=False,
                         help='show more logs')
+    parser.add_argument('-v', '--version', action='version', version='1.0.2')
     opts = parser.parse_args(argv[1:])
 
     if not opts.change_num and not opts.query:
-        parser.Log_help()
+        parser.print_help()
         return None
 
     if not opts.user and not opts.password:
