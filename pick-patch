@@ -13,7 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys, os, netrc, json, subprocess, argparse
+import sys, os, netrc, json, subprocess, argparse, shlex
 import xml.etree.ElementTree as etree
 import ssl
 
@@ -33,6 +33,7 @@ FETCH_PROTOCOL_ORDER = 'http ssh git'
 DEFAULT_NETRC_PATH = '~/.netrc'
 DEFAULT_GERRIT_SERVER = 'TBD'
 DELIMITER = '-' * 80
+DELIMITER_END = '=' * 80
 PREVIEW = 'git log --no-decorate -1'
 # ---------------------------
 
@@ -41,24 +42,36 @@ RED         = "\x1b[31m"
 GREEN       = "\x1b[32m"
 NONE        = "\x1b[0m"
 
+def Log(s):
+    print(s)
+    sys.stdout.flush()
+
 def Loge(s):
-    print(RED + s + NONE)
+    Log(RED + s + NONE)
 
 def Logm(s):
-    print(GREEN + s + NONE)
+    Log(GREEN + s + NONE)
+
+def RunShell(cmd):
+    return subprocess.call(cmd, shell=True)
 
 def Run(cmd):
-    return subprocess.call(cmd, shell=True)
+    try:
+        process = subprocess.Popen(shlex.split(cmd), bufsize=0)
+        process.communicate()
+        return process.returncode
+    except Exception as e:
+        Loge("Run cmd '%s' fail. (%s)" % (cmd, e))
+        return 1
 
 def RunLog(cmd, silent=False):
     try:
-        ret = subprocess.check_output(cmd,
-                                      stderr=subprocess.STDOUT,
-                                      shell=True)
+        ret = subprocess.check_output(shlex.split(cmd),
+                                      stderr=subprocess.STDOUT)
         return ret.decode('utf-8').rstrip()
     except Exception as e:
         if not silent:
-            print(e)
+            Loge("Run '%s' fail. (%s)" % (cmd, e))
         return None
 
 class GerritRest:
@@ -87,18 +100,15 @@ class GerritRest:
             ssl._create_default_https_context = _create_unverified_https_context
         url = "%s/a%s" % (self.server, q)
         if verbose:
-            print("Query: %s" % url)
+            Log("Query: %s" % url)
         req = request.Request(url, None, headers)
         response = request.urlopen(req, None, CONNECT_TIMEOUT)
         # skip )]}'
         response.readline()
         data = json.loads(response.read().decode("utf-8"))
         if verbose:
-            print("Response: %s" % data)
+            Log("Response: %s" % data)
         return data
-
-def GetLog(command, commit_id):
-    return RunLog("%s %s" % (command, commit_id))
 
 def GetMachine(url):
     info = urlparse(url)
@@ -110,17 +120,17 @@ def GetMachine(url):
 def GetLoginInfoNetrc(url, path):
     path = os.path.expanduser(path)
     if not os.path.isfile(path):
-        print("Can't find netrc path '%s'" % (path))
+        Log("Can't find netrc path '%s'" % (path))
         return None, None
 
     handle = netrc.netrc(path)
     machine = GetMachine(url)
     if not machine:
-        print("Can't find machine name in '%s' for netrc" % (url))
+        Log("Can't find machine name in '%s' for netrc" % (url))
         return None, None
     info = handle.authenticators(machine)
     if not info:
-        print("Can't find machine '%s' in '%s'" % (machine, path))
+        Log("Can't find machine '%s' in '%s'" % (machine, path))
         return None, None
     (login, account, password) = info
     return (login, password)
@@ -161,13 +171,13 @@ def ParseArguments(argv):
     opts = parser.parse_args(argv[1:])
 
     if not opts.change_num and not opts.query:
-        parser.print_help()
+        parser.Log_help()
         return None
 
     if not opts.user and not opts.password:
         (opts.user, opts.password) = GetLoginInfoNetrc(opts.gerrit, opts.netrc_file)
     if not opts.user and not opts.password:
-        print ("Please assign user name and password")
+        Log ("Please assign user name and password")
         return None
     return opts
 
@@ -196,7 +206,7 @@ def ResponseToPatch(response, change_num, patchset_id):
     remote = GetRemote(fetch_info)
     if not remote:
         Loge("Can't find remote project for %s" % change_num)
-        print(fetch_info)
+        Log(fetch_info)
         return None
 
     patch = {'project': project, 'remote': remote, 'patch': "%s/%s" % (change_num, patchset_id), 'ref': ChangeIdToRefId(change_num, patchset_id)}
@@ -225,16 +235,16 @@ def QueryChanges(opts, rest):
         Loge("query fail: %s" % e)
         return 1
     if opts.verbose:
-        print(DELIMITER)
+        Log(DELIMITER)
     if not response:
         return None
     for res in reversed(response):
         opts.change_num.append(str(res['_number']))
-    print(DELIMITER)
+    Log(DELIMITER)
     for res in response:
-        print("%8s - %s" % (res['_number'], res['subject']))
-    print("(Total: %d changes)" % len(response))
-    print(DELIMITER)
+        Log("%8s - %s" % (res['_number'], res['subject']))
+    Log("(Total: %d changes)" % len(response))
+    Log(DELIMITER_END)
     return 0
 
 def GetPatchList(opts, rest):
@@ -252,7 +262,7 @@ def GetPatchList(opts, rest):
             Loge("query fail: %s" % e)
             return None
         if opts.verbose:
-            print(DELIMITER)
+            Log(DELIMITER)
         if not response:
             Loge ("Can't find change number '%s'" % change_num)
             return None
@@ -272,9 +282,7 @@ def InstallPatch(opts, remote, ref_id):
         return 1
 
     if opts.dryrun:
-        print(GetLog(opts.preview, "FETCH_HEAD"))
-        return 0
-
+        return Run("%s %s" % (opts.preview, "FETCH_HEAD"))
     return Run("git cherry-pick FETCH_HEAD")
 
 def GetInputNums(patches, start = 0):
@@ -294,15 +302,15 @@ def CheckInstallPath(full_path, project, patches, opts):
         return True
 
     Loge("[Project: %s]" % project)
-    print('''\
+    Log('''\
 WARNING: %s
     (use '-i INSTALL_PATH' for '%s' to assign the right path)
     (use the following commands manually in the right path)''' % (error_msg,
                                                                   GetInputNums(patches)))
-    print(DELIMITER)
+    Log(DELIMITER)
     for patch in patches:
-        print("git fetch %s %s && git cherry-pick FETCH_HEAD" % (patch['remote'], patch['ref']))
-    print(DELIMITER)
+        Log("git fetch %s %s && git cherry-pick FETCH_HEAD" % (patch['remote'], patch['ref']))
+    Log(DELIMITER_END)
     return False
 
 def InstallPatches(opts, project, patches, root):
@@ -335,18 +343,18 @@ def InstallPatches(opts, project, patches, root):
         ref_id = patch['ref']
 
         if opts.dryrun:
-            print("(dryrun) Pick: %s %s" % (remote, ref_id))
+            Log("(dryrun) Pick: %s %s" % (remote, ref_id))
         else:
-            print("Pick: %s %s" % (remote, ref_id))
-        print(DELIMITER)
+            Log("Pick: %s %s" % (remote, ref_id))
+        Log(DELIMITER)
         ret = InstallPatch(opts, remote, ref_id)
-        print(DELIMITER)
+        Log(DELIMITER_END)
         if ret:
-            Loge("error: pick fail (unfinished: %s)" % GetInputNums(patches, i))
+            Loge("error: pick fail (unfinished patches: %s)" % GetInputNums(patches, i))
             fail = 1
             break
     if not fail and opts.exe:
-        Run(opts.exe)
+        RunShell(opts.exe)
     os.chdir(CUR_PATH)
     return fail
 
@@ -357,8 +365,8 @@ def main(argv):
     
     rest = GerritRest(opts.gerrit, opts.user, opts.password)
     if opts.query:
-        print("Querying change numbers from '%s' ..." % opts.gerrit)
-        print("Search for '%s'" % opts.query)
+        Log("Querying change numbers from '%s' ..." % opts.gerrit)
+        Log("Search for '%s'" % opts.query)
         if QueryChanges(opts, rest):
             return 1
 
@@ -370,15 +378,15 @@ def main(argv):
         try:
             root = etree.parse(opts.manifest).getroot()
         except Exception as e:
-            print("Manifest '%s' parse error: %s" % (opts.manifest, e))
+            Log("Manifest '%s' parse error: %s" % (opts.manifest, e))
             return 1
 
-    print("Getting patches from '%s' ..." % opts.gerrit)
+    Log("Getting patches from '%s' ..." % opts.gerrit)
     patch_list = GetPatchList(opts, rest)
     if not patch_list:
         return 1
 
-    print("Installing patches ...")
+    Log("Installing patches ...")
     ret = 0
     for project, patches in patch_list.items():
         if InstallPatches(opts, project, patches, root):
