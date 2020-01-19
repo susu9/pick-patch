@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
      name='pick-patch',  
-     version='1.0.1',
+     version='1.0.2',
      scripts=['pick-patch'] ,
      author="Rick Chang",
      author_email="chchang915@gmail.com",
