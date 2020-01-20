@@ -1,0 +1,11 @@
+# My configuration
+repo = repo
+user = $USER
+password = $PASSWORD
+gerritUrl = https://review.gerrithub.io
+connectTimeout = 30
+fetchProtocols = http ssh git
+netrcPath = ~/.netrc
+delimiter = ................................................................................
+delimiterEnd = ********************************************************************************
+patchPreview = git log --oneline -1
