@@ -13,34 +13,112 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys, os, netrc, json, subprocess, argparse, shlex
+import sys, os, netrc, json, subprocess, argparse, shlex, re
 import xml.etree.ElementTree as etree
 import ssl
 
 try:
+    import configparser as ConfigParser
     from urllib.parse import urlparse, urlencode, quote
     from urllib.error import HTTPError
     import urllib.request as request
 except ImportError:
+    import ConfigParser
     from urlparse import urlparse
     from urllib import urlencode, quote
     import urllib2 as request
 
-# ------ Customization ------
-REPO = 'repo'
-CONNECT_TIMEOUT = 30
-FETCH_PROTOCOL_ORDER = 'http ssh git'
-DEFAULT_NETRC_PATH = '~/.netrc'
-DEFAULT_GERRIT_SERVER = 'TBD'
-DELIMITER = '-' * 80
-DELIMITER_END = '=' * 80
-PREVIEW = 'git log --no-decorate -1'
-# ---------------------------
+CONFIG = {
+    'repo': 'repo',
+    'user': None,
+    'password': None,
+    'gerritUrl': 'https://review.gerrithub.io',
+    'connectTimeout': '30',
+    'netrcPath': '~/.netrc',
+    'fetchProtocols': 'http ssh git',
+    'configPath': '~/.pickrc',
+    'delimiter': '-' * 80,
+    'delimiterEnd': '=' * 80,
+    'patchPreview': 'git log --no-decorate -1',
+}
 
 CUR_PATH    = os.getcwd()
 RED         = "\x1b[31m"
 GREEN       = "\x1b[32m"
+YELLOW      = "\x1b[33m"
 NONE        = "\x1b[0m"
+CONFIG_SECTION = 'section'
+
+class FakeSection(object):
+    def __init__(self, f, name):
+        self.f = f
+        self.first = True
+        self.sectionName = "[%s]\n" % name
+
+    def readline(self):
+        if self.first:
+            self.first = False
+            return self.sectionName
+        return self.f.readline()
+
+    def __iter__(self):
+        if self.first:
+            self.first = False
+            yield self.sectionName
+        line = self.f.readline()
+        while line:
+            yield line
+            line = self.f.readline()
+
+class Config(object):
+    def __init__(self, opts):
+        self.gerrit = opts.gerrit if opts.gerrit else CONFIG['gerritUrl']
+        self.repo = CONFIG['repo']
+        self.user = opts.user if opts.user else CONFIG['user']
+        self.password = opts.password if opts.password else CONFIG['password']
+        self.timeout = int(CONFIG['connectTimeout'])
+        self.netrc_file = opts.netrc_file if opts.netrc_file else CONFIG['netrcPath']
+        self.protocols = CONFIG['fetchProtocols']
+        self.delim = CONFIG['delimiter']
+        self.delim_end = CONFIG['delimiterEnd']
+        self.preview = opts.preview if opts.preview else CONFIG['patchPreview']
+        self.opts = opts
+
+def InitConfig(opts):
+    config_file = CONFIG['configPath']
+    if opts.config_file:
+        config_file = opts.config_file
+
+    if not os.path.isfile(config_file):
+        if opts.config_file:
+            Loge("Can't find config file '%s'" % config_file)
+            return None
+        return Config(opts)
+
+    if opts.netrc_file is not None and not os.path.isfile(opts.netrc_file):
+        Loge("Can't find netrc file '%s'" % (opts.netrc_file))
+        return None
+
+    Log("Use config file: %s" % config_file)
+    config = ConfigParser.SafeConfigParser()
+    config.readfp(FakeSection(open(config_file), CONFIG_SECTION))
+    for key, val in CONFIG.items():
+        if not config.has_option(CONFIG_SECTION, key):
+            continue
+        val = config.get(CONFIG_SECTION, key)
+        CONFIG[key] = val
+    return Config(opts)
+
+def InitAccount(configs):
+    if configs.user is not None or configs.password is not None:
+        return 0
+
+    configs.user, configs.password = GetLoginInfoNetrc(configs.gerrit, configs.netrc_file)
+    if configs.user is None:
+        Logw("WARNING: user is None")
+    if configs.password is None:
+        Logw("WARNING: password is None")
+    return 0
 
 def Log(s):
     print(s)
@@ -51,6 +129,9 @@ def Loge(s):
 
 def Logm(s):
     Log(GREEN + s + NONE)
+
+def Logw(s):
+    Log(YELLOW + s + NONE)
 
 def RunShell(cmd):
     return subprocess.call(cmd, shell=True)
@@ -68,7 +149,7 @@ def RunLog(cmd, silent=False):
     try:
         ret = subprocess.check_output(shlex.split(cmd),
                                       stderr=subprocess.STDOUT)
-        return ret.decode('utf-8').rstrip()
+        return ret.decode('utf-8').strip()
     except Exception as e:
         if not silent:
             Loge("Run '%s' fail. (%s)" % (cmd, e))
@@ -77,7 +158,7 @@ def RunLog(cmd, silent=False):
 class GerritRest:
     # https://github.com/GerritCodeReview/gerrit/blob/master/Documentation/rest-api.txt
     def __init__(self, url, username, password):
-        url = url.rstrip('/')
+        url = url.strip('/')
         password_mgr = request.HTTPPasswordMgrWithDefaultRealm()
         password_mgr.add_password(None, url, username, password)
         digest_auth = request.HTTPDigestAuthHandler(password_mgr)
@@ -86,7 +167,7 @@ class GerritRest:
         request.install_opener(opener)
         self.server = url
 
-    def query(self, q, verbose=False):
+    def query(self, q, verbose=False, timeout=None):
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json;charset=UTF-8"
@@ -102,7 +183,7 @@ class GerritRest:
         if verbose:
             Log("Query: %s" % url)
         req = request.Request(url, None, headers)
-        response = request.urlopen(req, None, CONNECT_TIMEOUT)
+        response = request.urlopen(req, None, timeout)
         # skip )]}'
         response.readline()
         data = json.loads(response.read().decode("utf-8"))
@@ -120,7 +201,6 @@ def GetMachine(url):
 def GetLoginInfoNetrc(url, path):
     path = os.path.expanduser(path)
     if not os.path.isfile(path):
-        Log("Can't find netrc path '%s'" % (path))
         return None, None
 
     handle = netrc.netrc(path)
@@ -145,20 +225,22 @@ def ParseArguments(argv):
                         help='gerrit HTTP password')
     # https://review.openstack.org/Documentation/user-search.html
     parser.add_argument('-q', '--query', type=str,
-                        help='query command ex. \'branch:master status:merged after:"2018-11-17 22:06:00"\'')
+                        help='get patches from query command (change_nums will be ignored if any) ex. \'branch:master status:merged after:"2018-11-17 22:06:00"\'')
     parser.add_argument('--query-only', action='store_true', default=False,
                         help='do not install patch')
-    parser.add_argument('-r', '--preview', type=str, default=PREVIEW,
-                        help='preview command for changes ex. \'git log --oneline -1\' (default: %s)' % PREVIEW)
-    parser.add_argument('-g', '--gerrit', type=str, default=DEFAULT_GERRIT_SERVER,
-                        help='gerrit server url ex. \'https://gerrit.mycompany.com (default: %s)\'' % DEFAULT_GERRIT_SERVER)
+    parser.add_argument('-r', '--preview', type=str,
+                        help='preview command for changes ex. \'git log --oneline -1\' (default: %s)' % CONFIG['patchPreview'])
+    parser.add_argument('-g', '--gerrit', type=str,
+                        help='gerrit server url ex. \'https://gerrit.mycompany.com (default: %s)\'' % CONFIG['gerritUrl'])
     parser.add_argument('-d', '--dryrun', action='store_true', default=False,
                         help='show what would be done')
-    parser.add_argument('-n', '--netrc-file', type=str, default=DEFAULT_NETRC_PATH,
-                        help='netrc path (default: %s)' % DEFAULT_NETRC_PATH)
+    parser.add_argument('-n', '--netrc-file', type=str,
+                        help='netrc path (default: %s)' % CONFIG['netrcPath'])
+    parser.add_argument('-c', '--config-file', type=str,
+                        help='config path (default: %s)' % CONFIG['configPath'])
     parser.add_argument('-m', '--manifest', type=str, metavar='NAME.xml',
                         help='assign manifest file to resolve patch install path instead of using repo command')
-    parser.add_argument('-i', '--install-path', type=str, default='',
+    parser.add_argument('-i', '--install-path', type=str,
                         help='assign patch install path instead of resolving path by repo command or manifest')
     parser.add_argument('-F', '--full-path', action='store_true', default=False,
                         help='display the full install path instead of the relative install path')
@@ -174,12 +256,6 @@ def ParseArguments(argv):
     if not opts.change_num and not opts.query:
         parser.print_help()
         return None
-
-    if not opts.user and not opts.password:
-        (opts.user, opts.password) = GetLoginInfoNetrc(opts.gerrit, opts.netrc_file)
-    if not opts.user and not opts.password:
-        Log ("Please assign user name and password")
-        return None
     return opts
 
 def ChangeIdToRefId(change_num, patchset_id):
@@ -188,15 +264,15 @@ def ChangeIdToRefId(change_num, patchset_id):
         hash_id = "0" + hash_id
     return "refs/changes/%s/%s/%s" % (hash_id, change_num, patchset_id)
 
-def GetRemote(fetch_info):
+def GetRemote(protocols, fetch_info):
     remote = ''
-    for prot in FETCH_PROTOCOL_ORDER.split(' '):
+    for prot in protocols:
         if prot in fetch_info:
             remote = fetch_info[prot]['url']
             break
     return remote
 
-def ResponseToPatch(response, change_num, patchset_id):
+def ResponseToPatch(configs, response, change_num, patchset_id):
     info = response[0]
     project = info['project']
     current_revision = info['current_revision']
@@ -204,7 +280,7 @@ def ResponseToPatch(response, change_num, patchset_id):
         patchset_id = info['revisions'][current_revision]['_number']
     fetch_info = info['revisions'][current_revision]['fetch']
 
-    remote = GetRemote(fetch_info)
+    remote = GetRemote(re.split('\s+', configs.protocols), fetch_info)
     if not remote:
         Loge("Can't find remote project for %s" % change_num)
         Log(fetch_info)
@@ -228,29 +304,29 @@ def GetChangeIdInfo(change_num):
         return None, None
     return change_num, patchset_id
 
-def QueryChanges(opts, rest):
+def QueryChanges(configs, rest):
+    opts = configs.opts
     query = '/changes/?q=%s' % quote(opts.query);
     try:
-        response = rest.query(query, opts.verbose)
+        response = rest.query(query, opts.verbose, configs.timeout)
     except Exception as e:
         Loge("query fail: %s" % e)
-        return 1
-    if opts.verbose:
-        Log(DELIMITER)
-    if not response:
         return None
-    for res in reversed(response):
-        opts.change_num.append(str(res['_number']))
-    Log(DELIMITER)
+    if opts.verbose:
+        Log(configs.delim)
+    if not response:
+        return []
+    Log(configs.delim)
     for res in response:
         Log("%8s - %s" % (res['_number'], res['subject']))
     Log("(Total: %d changes)" % len(response))
-    Log(DELIMITER_END)
-    return 0
+    Log(configs.delim_end)
+    return [str(res['_number']) for res in reversed(response)]
 
-def GetPatchList(opts, rest):
+def GetPatchList(configs, rest, change_nums):
+    opts = configs.opts
     patch_list = {}
-    for input_num in opts.change_num:
+    for input_num in change_nums:
         change_num, patchset_id = GetChangeIdInfo(input_num)
         if not change_num:
             Loge("error: Unknown change number format '%s'" % input_num)
@@ -263,12 +339,12 @@ def GetPatchList(opts, rest):
             Loge("query fail: %s" % e)
             return None
         if opts.verbose:
-            Log(DELIMITER)
+            Log(configs.delim)
         if not response:
             Loge ("Can't find change number '%s'" % change_num)
             return None
 
-        patch = ResponseToPatch(response, change_num, patchset_id)
+        patch = ResponseToPatch(configs, response, change_num, patchset_id)
         if not patch:
             return None
         patch['input_num'] = input_num
@@ -278,22 +354,24 @@ def GetPatchList(opts, rest):
         patch_list[project].append(patch)
     return patch_list
 
-def InstallPatch(opts, remote, ref_id):
+def InstallPatch(configs, remote, ref_id):
+    opts = configs.opts
     if Run("git fetch %s %s" % (remote, ref_id)):
         return 1
 
     if opts.dryrun:
-        return Run("%s %s" % (opts.preview, "FETCH_HEAD"))
+        return Run("%s %s" % (configs.preview, "FETCH_HEAD"))
     return Run("git cherry-pick FETCH_HEAD")
 
 def GetInputNums(patches, start = 0):
     ret = ""
     for i in range(start, len(patches)):
         ret += patches[i]['input_num'] + " "
-    return ret.rstrip()
+    return ret.strip()
 
-def CheckInstallPath(full_path, project, patches, opts):
-    method = "manifest '%s'" % opts.manifest if opts.manifest else "command '%s list'" % REPO
+def CheckInstallPath(full_path, project, patches, configs):
+    opts = configs.opts
+    method = "manifest '%s'" % opts.manifest if opts.manifest else "command '%s list'" % configs.repo
     error_msg = "The install path for the project can't be found."
     if not full_path:
         error_msg = "The install path can't be resolved by %s" % method
@@ -302,31 +380,32 @@ def CheckInstallPath(full_path, project, patches, opts):
     else:
         return True
 
-    Loge("[Project: %s]" % project)
-    Log('''\
+    Logm("[Project: %s]" % project)
+    Logw('''\
 WARNING: %s
     (use '-i INSTALL_PATH' for '%s' to assign the right path)
     (use the following commands manually in the right path)''' % (error_msg,
                                                                   GetInputNums(patches)))
-    Log(DELIMITER)
+    Log(configs.delim)
     for patch in patches:
         Log("git fetch %s %s && git cherry-pick FETCH_HEAD" % (patch['remote'], patch['ref']))
-    Log(DELIMITER_END)
+    Log(configs.delim_end)
     return False
 
-def InstallPatches(opts, project, patches, root):
-    if opts.install_path:
+def InstallPatches(configs, project, patches, root):
+    opts = configs.opts
+    if opts.install_path is not None:
         path = opts.install_path
         full_path = os.path.abspath(path)
-    elif opts.manifest:
+    elif opts.manifest is not None:
         ele = root.find("./project[@name='%s']" % project)
         path = ele.get('path') if ele is not None else None
         full_path = os.path.abspath(path) if path is not None else None
     else:
-        path = RunLog("%s list -p %s" % (REPO, project), silent=True)
-        full_path = RunLog("%s list -pf %s" % (REPO, project), silent=True)
+        path = RunLog("%s list -p %s" % (configs.repo, project), silent=True)
+        full_path = RunLog("%s list -pf %s" % (configs.repo, project), silent=True)
 
-    if not CheckInstallPath(full_path, project, patches, opts):
+    if not CheckInstallPath(full_path, project, patches, configs):
         return 1
 
     if opts.full_path:
@@ -335,7 +414,7 @@ def InstallPatches(opts, project, patches, root):
         display_path = project
     else:
         display_path = path
-    Logm("[%s]" % display_path.rstrip('/'))
+    Logm("[%s]" % display_path.strip('/'))
 
     os.chdir(full_path)
     fail = 0
@@ -347,9 +426,9 @@ def InstallPatches(opts, project, patches, root):
             Log("(dryrun) Pick: %s %s" % (remote, ref_id))
         else:
             Log("Pick: %s %s" % (remote, ref_id))
-        Log(DELIMITER)
-        ret = InstallPatch(opts, remote, ref_id)
-        Log(DELIMITER_END)
+        Log(configs.delim)
+        ret = InstallPatch(configs, remote, ref_id)
+        Log(configs.delim_end)
         if ret:
             Loge("error: pick fail (unfinished patches: %s)" % GetInputNums(patches, i))
             fail = 1
@@ -361,14 +440,23 @@ def InstallPatches(opts, project, patches, root):
 
 def main(argv):
     opts = ParseArguments(argv)
-    if not opts:
+    if opts is None:
         return 1
-    
-    rest = GerritRest(opts.gerrit, opts.user, opts.password)
+
+    configs = InitConfig(opts)
+    if configs is None:
+        return 1
+
+    if InitAccount(configs):
+        return 1
+ 
+    change_nums = opts.change_num
+    rest = GerritRest(configs.gerrit, configs.user, configs.password)
     if opts.query:
-        Log("Querying change numbers from '%s' ..." % opts.gerrit)
+        Log("Querying change numbers from '%s' ..." % configs.gerrit)
         Log("Search for '%s'" % opts.query)
-        if QueryChanges(opts, rest):
+        change_nums = QueryChanges(configs, rest)
+        if change_nums is None:
             return 1
 
     if opts.query_only:
@@ -382,15 +470,15 @@ def main(argv):
             Log("Manifest '%s' parse error: %s" % (opts.manifest, e))
             return 1
 
-    Log("Getting patches from '%s' ..." % opts.gerrit)
-    patch_list = GetPatchList(opts, rest)
+    Log("Getting patches from '%s' ..." % configs.gerrit)
+    patch_list = GetPatchList(configs, rest, change_nums)
     if not patch_list:
         return 1
 
     Log("Installing patches ...")
     ret = 0
     for project, patches in patch_list.items():
-        if InstallPatches(opts, project, patches, root):
+        if InstallPatches(configs, project, patches, root):
             ret = 1
     return ret
 

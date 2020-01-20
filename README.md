@@ -25,16 +25,19 @@ pick-hub -i . 460654
 ```
 
 # Custimization
-You may want to customize following variables in pick-patch
+You can create a config file in ~/.pickrc to customize your preference
 ```
-REPO = 'repo'
-CONNECT_TIMEOUT = 30
-FETCH_PROTOCOL_ORDER = 'http ssh git'
-DEFAULT_NETRC_PATH = '~/.netrc'
-DEFAULT_GERRIT_SERVER = 'TBD'
-DELIMITER = '-' * 80
-DELIMITER_END = '=' * 80
-PREVIEW = 'git log --no-decorate -1'
+# Supported configurations and format
+repo = repo
+user = susu9
+password = XXXOOOXXXOO
+gerritUrl = https://review.gerrithub.io
+connectTimeout = 30
+fetchProtocols = http ssh git
+netrcPath = ~/.netrc
+delimiter = ....................
+delimiterEnd = ********************
+patchPreview = git log --oneline -1
 ```
 
 # Features
@@ -94,8 +97,9 @@ Pick: https://gerrit.mycompany.com/app refs/changes/88/7788/2
 # Usage
 ```
 usage: pick-patch [-h] [-u USER] [-p PASSWORD] [-q QUERY] [--query-only]
-                  [-r PREVIEW] [-g GERRIT] [-d] [-n NETRC_FILE] [-m NAME.xml]
-                  [-i INSTALL_PATH] [-F] [-N] [-x EXE] [--verbose] [-v]
+                  [-r PREVIEW] [-g GERRIT] [-d] [-n NETRC_FILE]
+                  [-c CONFIG_FILE] [-m NAME.xml] [-i INSTALL_PATH] [-F] [-N]
+                  [-x EXE] [--verbose] [-v]
                   [change_num [change_num ...]]
 
 positional arguments:
@@ -107,7 +111,8 @@ optional arguments:
   -p PASSWORD, --password PASSWORD
                         gerrit HTTP password
   -q QUERY, --query QUERY
-                        query command ex. 'branch:master status:merged
+                        get patches from query command (change_nums will be
+                        ignored if any) ex. 'branch:master status:merged
                         after:"2018-11-17 22:06:00"'
   --query-only          do not install patch
   -r PREVIEW, --preview PREVIEW
@@ -115,10 +120,12 @@ optional arguments:
                         (default: git log --no-decorate -1)
   -g GERRIT, --gerrit GERRIT
                         gerrit server url ex. 'https://gerrit.mycompany.com
-                        (default: TBD)'
+                        (default: https://review.gerrithub.io)'
   -d, --dryrun          show what would be done
   -n NETRC_FILE, --netrc-file NETRC_FILE
                         netrc path (default: ~/.netrc)
+  -c CONFIG_FILE, --config-file CONFIG_FILE
+                        config path (default: ~/.pickrc)
   -m NAME.xml, --manifest NAME.xml
                         assign manifest file to resolve patch install path
                         instead of using repo command
