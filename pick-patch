@@ -77,7 +77,7 @@ class Config(object):
         self.user = opts.user if opts.user else CONFIG['user']
         self.password = opts.password if opts.password else CONFIG['password']
         self.timeout = int(CONFIG['connectTimeout'])
-        self.netrc_file = opts.netrc_file if opts.netrc_file else CONFIG['netrcPath']
+        self.netrc_file = os.path.expanduser(opts.netrc_file if opts.netrc_file else CONFIG['netrcPath'])
         self.protocols = CONFIG['fetchProtocols']
         self.delim = CONFIG['delimiter']
         self.delim_end = CONFIG['delimiterEnd']
@@ -89,15 +89,12 @@ def InitConfig(opts):
     if opts.config_file:
         config_file = opts.config_file
 
+    config_file = os.path.expanduser(config_file)
     if not os.path.isfile(config_file):
         if opts.config_file:
             Loge("Can't find config file '%s'" % config_file)
             return None
         return Config(opts)
-
-    if opts.netrc_file is not None and not os.path.isfile(opts.netrc_file):
-        Loge("Can't find netrc file '%s'" % (opts.netrc_file))
-        return None
 
     Log("Use config file: %s" % config_file)
     config = ConfigParser.SafeConfigParser()
@@ -110,6 +107,12 @@ def InitConfig(opts):
     return Config(opts)
 
 def InitAccount(configs):
+    opts = configs.opts
+
+    if opts.netrc_file is not None and not os.path.isfile(configs.netrc_file):
+        Loge("Can't find netrc file '%s'" % (configs.netrc_file))
+        return 1
+
     if configs.user is not None or configs.password is not None:
         return 0
 
@@ -199,7 +202,6 @@ def GetMachine(url):
     return machine
 
 def GetLoginInfoNetrc(url, path):
-    path = os.path.expanduser(path)
     if not os.path.isfile(path):
         return None, None
 
