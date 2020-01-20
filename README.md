@@ -116,14 +116,15 @@ optional arguments:
                         after:"2018-11-17 22:06:00"'
   --query-only          do not install patch
   -r PREVIEW, --preview PREVIEW
-                        preview command for changes ex. 'git log --oneline -1'
-                        (default: git log --no-decorate -1)
+                        preview command for changes (default: git log --no-
+                        decorate -1)
   -g GERRIT, --gerrit GERRIT
-                        gerrit server url ex. 'https://gerrit.mycompany.com
-                        (default: https://review.gerrithub.io)'
+                        gerrit server url (default:
+                        https://review.gerrithub.io)
   -d, --dryrun          show what would be done
   -n NETRC_FILE, --netrc-file NETRC_FILE
-                        netrc path (default: ~/.netrc)
+                        netrc path (default: ~/.netrc). (if user or password
+                        has been specified, netrc config will be ignored)
   -c CONFIG_FILE, --config-file CONFIG_FILE
                         config path (default: ~/.pickrc)
   -m NAME.xml, --manifest NAME.xml

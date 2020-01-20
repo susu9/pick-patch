@@ -231,13 +231,13 @@ def ParseArguments(argv):
     parser.add_argument('--query-only', action='store_true', default=False,
                         help='do not install patch')
     parser.add_argument('-r', '--preview', type=str,
-                        help='preview command for changes ex. \'git log --oneline -1\' (default: %s)' % CONFIG['patchPreview'])
+                        help='preview command for changes (default: %s)' % CONFIG['patchPreview'])
     parser.add_argument('-g', '--gerrit', type=str,
-                        help='gerrit server url ex. \'https://gerrit.mycompany.com (default: %s)\'' % CONFIG['gerritUrl'])
+                        help='gerrit server url (default: %s)' % CONFIG['gerritUrl'])
     parser.add_argument('-d', '--dryrun', action='store_true', default=False,
                         help='show what would be done')
     parser.add_argument('-n', '--netrc-file', type=str,
-                        help='netrc path (default: %s)' % CONFIG['netrcPath'])
+                        help='netrc path (default: %s). (if user or password has been specified, netrc config will be ignored)' % CONFIG['netrcPath'])
     parser.add_argument('-c', '--config-file', type=str,
                         help='config path (default: %s)' % CONFIG['configPath'])
     parser.add_argument('-m', '--manifest', type=str, metavar='NAME.xml',
