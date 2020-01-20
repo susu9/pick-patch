@@ -31,7 +31,7 @@ init_pickrc() {
         return
     fi
     echo "Create ~/.pickrc"
-    sudo sed -e "s/$USER/${GERRITHUB_API_USER}/" -e "s/$PASSWORD/${GERRITHUB_API_PASSWORD}/" test/pickrc.test > ~/.pickrc
+    sudo sed -e "s/\$USER/${GERRITHUB_API_USER}/" -e "s/\$PASSWORD/${GERRITHUB_API_PASSWORD}/" test/pickrc.test > ~/.pickrc
 }
 
 testConfig() {
