@@ -13,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import print_function
 import sys, os, netrc, json, subprocess, argparse, shlex, re
 import xml.etree.ElementTree as etree
 import ssl
@@ -48,6 +49,23 @@ GREEN       = "\x1b[32m"
 YELLOW      = "\x1b[33m"
 NONE        = "\x1b[0m"
 CONFIG_SECTION = 'section'
+
+def Log(s, endPat=None):
+    print(s, end=endPat)
+    sys.stdout.flush()
+
+def Loge(s):
+    Log(RED + s + NONE)
+
+def Logm(s):
+    Log(GREEN + s + NONE)
+
+def Logw(s):
+    Log(YELLOW + s + NONE)
+
+def Logv(s, verbose):
+    if verbose:
+        Log(s)
 
 class FakeSection(object):
     def __init__(self, f, name):
@@ -123,19 +141,6 @@ def InitAccount(configs):
         Logw("WARNING: password is None")
     return 0
 
-def Log(s):
-    print(s)
-    sys.stdout.flush()
-
-def Loge(s):
-    Log(RED + s + NONE)
-
-def Logm(s):
-    Log(GREEN + s + NONE)
-
-def Logw(s):
-    Log(YELLOW + s + NONE)
-
 def RunShell(cmd):
     return subprocess.call(cmd, shell=True)
 
@@ -183,15 +188,17 @@ class GerritRest:
         else:
             ssl._create_default_https_context = _create_unverified_https_context
         url = "%s/a%s" % (self.server, q)
-        if verbose:
-            Log("Query: %s" % url)
-        req = request.Request(url, None, headers)
-        response = request.urlopen(req, None, timeout)
-        # skip )]}'
-        response.readline()
-        data = json.loads(response.read().decode("utf-8"))
-        if verbose:
-            Log("Response: %s" % data)
+        Logv("Query: %s" % url, verbose)
+        try:
+            req = request.Request(url, None, headers)
+            response = request.urlopen(req, None, timeout)
+            # skip )]}'
+            response.readline()
+            data = json.loads(response.read().decode("utf-8"))
+            Logv("Response: %s" % data, verbose)
+        except Exception as e:
+            Loge("query fail: %s" % e)
+            return None
         return data
 
 def GetMachine(url):
@@ -227,7 +234,7 @@ def ParseArguments(argv):
                         help='gerrit HTTP password')
     # https://review.openstack.org/Documentation/user-search.html
     parser.add_argument('-q', '--query', type=str,
-                        help='get patches from query command (change_nums will be ignored if any) ex. \'branch:master status:merged after:"2018-11-17 22:06:00"\'')
+                        help='get patches from query command (change_num arguments will be ignored if any) ex. \'branch:master status:merged after:"2018-11-17 22:06:00"\'')
     parser.add_argument('--query-only', action='store_true', default=False,
                         help='do not install patch')
     parser.add_argument('-r', '--preview', type=str,
@@ -309,16 +316,13 @@ def GetChangeIdInfo(change_num):
 def QueryChanges(configs, rest):
     opts = configs.opts
     query = '/changes/?q=%s' % quote(opts.query);
-    try:
-        response = rest.query(query, opts.verbose, configs.timeout)
-    except Exception as e:
-        Loge("query fail: %s" % e)
+
+    response = rest.query(query, opts.verbose, configs.timeout)
+    Logv(configs.delim, opts.verbose)
+    if response is None:
         return None
-    if opts.verbose:
-        Log(configs.delim)
     if not response:
         return []
-    Log(configs.delim)
     for res in response:
         Log("%8s - %s" % (res['_number'], res['subject']))
     Log("(Total: %d changes)" % len(response))
@@ -335,22 +339,23 @@ def GetPatchList(configs, rest, change_nums):
             return None
 
         query = '/changes/?q=%s&o=%s' % (change_num, "CURRENT_REVISION")
-        try:
-            response = rest.query(query, opts.verbose)
-        except Exception as e:
-            Loge("query fail: %s" % e)
+        Log("Searching patch '%s' ..." % change_num, '')
+        Logv("\n%s" % configs.delim, opts.verbose)
+        response = rest.query(query, opts.verbose, configs.timeout)
+        if response is None:
+            Logv("fail", not opts.verbose)
             return None
-        if opts.verbose:
-            Log(configs.delim)
         if not response:
-            Loge ("Can't find change number '%s'" % change_num)
+            Logv("fail", not opts.verbose)
+            Loge("Can't find change number '%s'" % change_num)
             return None
+        Log(configs.delim_end if opts.verbose else "done")
 
         patch = ResponseToPatch(configs, response, change_num, patchset_id)
         if not patch:
             return None
-        patch['input_num'] = input_num
 
+        patch['input_num'] = input_num
         project = patch['project']
         patch_list[project] = patch_list.get(project, [])
         patch_list[project].append(patch)
@@ -452,14 +457,23 @@ def main(argv):
     if InitAccount(configs):
         return 1
  
+    if opts.verbose:
+        Log(configs.delim)
+        Log(vars(configs))
+        Log(configs.delim_end)
+
     change_nums = opts.change_num
     rest = GerritRest(configs.gerrit, configs.user, configs.password)
     if opts.query:
-        Log("Querying change numbers from '%s' ..." % configs.gerrit)
-        Log("Search for '%s'" % opts.query)
+        Log("Querying change numbers from '%s'" % configs.gerrit)
+        Log("Searching patches by '%s' ..." % opts.query)
+        Log(configs.delim)
         change_nums = QueryChanges(configs, rest)
         if change_nums is None:
             return 1
+        if not change_nums:
+            Log("Can't find any patches")
+            return 0
 
     if opts.query_only:
         return 0
@@ -472,12 +486,15 @@ def main(argv):
             Log("Manifest '%s' parse error: %s" % (opts.manifest, e))
             return 1
 
-    Log("Getting patches from '%s' ..." % configs.gerrit)
+    Log("Getting patches from '%s'" % configs.gerrit)
+    Log(configs.delim)
     patch_list = GetPatchList(configs, rest, change_nums)
+    Logv(configs.delim_end, not opts.verbose)
     if not patch_list:
         return 1
 
-    Log("Installing patches ...")
+    Log("Fetching and installing patches")
+    Log(configs.delim)
     ret = 0
     for project, patches in patch_list.items():
         if InstallPatches(configs, project, patches, root):
