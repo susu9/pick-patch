@@ -47,51 +47,53 @@ patchPreview = git log --oneline -1
 ```
 $pick-patch -g https://gerrit.mycompany.com 1234 5566 7788/1
 Getting patches from 'https://gerrit.mycompany.com' ...
-Installing patches ...
+Fetching and installing patches
+------------------------------------------------------------
 [kernel]
 Pick: https://gerrit.mycompany.com/kernel refs/changes/34/1234/5
 ------------------------------------------------------------
 ...
-------------------------------------------------------------
+============================================================
 [middleware]
 Pick: https://gerrit.mycompany.com/middleware refs/changes/66/5566/3
 ------------------------------------------------------------
 ...
-------------------------------------------------------------
+============================================================
 [app]
 Pick: https://gerrit.mycompany.com/app refs/changes/88/7788/1
 ------------------------------------------------------------
 ...
-------------------------------------------------------------
+============================================================
 ```
 3. Support gerrit search changes and cherry pick
 ```
 $pick-patch -g https://gerrit.mycompany.com -q 'branch:master after:"2018-01-01"'
-Querying change numbers from 'https://gerrit.mycompany.com' ...
-Search for 'branch:master after:"2018-01-01"'
---------------------------------------------------------------------------------
+Querying change numbers from 'https://gerrit.mycompany.com'
+Searching patches by 'branch:master after:"2018-01-01"' ...
+------------------------------------------------------------
   1234 - kernel: add defconfig
   5566 - middleware: fix playback issue
   7788 - app: Update UI
 (Total: 3 changes)
---------------------------------------------------------------------------------
+============================================================
 Getting patches from 'https://gerrit.mycompany.com' ...
-Installing patches ...
+Fetching and installing patches
+------------------------------------------------------------
 [kernel]
 Pick: https://gerrit.mycompany.com/kernel refs/changes/34/1234/5
 ------------------------------------------------------------
 ...
-------------------------------------------------------------
+============================================================
 [middleware]
 Pick: https://gerrit.mycompany.com/middleware refs/changes/66/5566/3
 ------------------------------------------------------------
 ...
-------------------------------------------------------------
+============================================================
 [app]
 Pick: https://gerrit.mycompany.com/app refs/changes/88/7788/2
 ------------------------------------------------------------
 ...
-------------------------------------------------------------
+============================================================
 ```
 
 # Usage
@@ -111,9 +113,9 @@ optional arguments:
   -p PASSWORD, --password PASSWORD
                         gerrit HTTP password
   -q QUERY, --query QUERY
-                        get patches from query command (change_nums will be
-                        ignored if any) ex. 'branch:master status:merged
-                        after:"2018-11-17 22:06:00"'
+                        get patches from query command (change_num arguments
+                        will be ignored if any) ex. 'branch:master
+                        status:merged after:"2018-11-17 22:06:00"'
   --query-only          do not install patch
   -r PREVIEW, --preview PREVIEW
                         preview command for changes (default: git log --no-
