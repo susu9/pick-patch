@@ -8,8 +8,8 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-     name='pick-patch',  
-     version='1.1.0',
+     name='pick-patch',
+     version='1.1.1',
      scripts=['pick-patch'] ,
      author="Rick Chang",
      author_email="chchang915@gmail.com",
