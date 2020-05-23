@@ -153,10 +153,11 @@ def Run(cmd):
         Loge("Run cmd '%s' fail. (%s)" % (cmd, e))
         return 1
 
-def RunLog(cmd, silent=False):
+def RunLog(cmd, silent=False, outErr=True):
+    errout = subprocess.STDOUT if outErr else None
     try:
         ret = subprocess.check_output(shlex.split(cmd),
-                                      stderr=subprocess.STDOUT)
+                                      stderr=errout)
         return ret.decode('utf-8').strip()
     except Exception as e:
         if not silent:
@@ -409,8 +410,8 @@ def InstallPatches(configs, project, patches, root):
         path = ele.get('path') if ele is not None else None
         full_path = os.path.abspath(path) if path is not None else None
     else:
-        path = RunLog("%s list -p %s" % (configs.repo, project), silent=True)
-        full_path = RunLog("%s list -pf %s" % (configs.repo, project), silent=True)
+        path = RunLog("%s list -p %s" % (configs.repo, project), silent=True, outErr=False)
+        full_path = RunLog("%s list -pf %s" % (configs.repo, project), silent=True, outErr=False)
 
     if not CheckInstallPath(full_path, project, patches, configs):
         return 1
