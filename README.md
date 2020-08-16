@@ -6,25 +6,18 @@
 # pick-patch
 Help you cherry pick patches from Gerrit server
 
-# Installation
+![pick-patch-demo-optimize](https://user-images.githubusercontent.com/6793352/90324839-a0578e80-df28-11ea-9a59-7591eface688.gif)
+
+## Installation
 ```shell
 pip install pick-patch
 ```
-# Configuration
+## Configuration
 1. Get user name and http password in gerrit setting webpage (ex. https://review.gerrithub.io/settings/#HTTPCredentials)
 2. Add user name and http password in ~/.netrc (ex. machine review.gerrithub.io login susu9 password XXXOOOXXXOO)
 3. Now you are good to go. (script parses ~/.netrc by default)
 
-# Example
-```shell
-# Get patch https://review.gerrithub.io/c/susu9/pick-patch/+/460654
-pick-patch -g https://review.gerrithub.io -i . 460654
-# Use alias shortcut
-alias pick-hub='pick-patch -g https://review.gerrithub.io'
-pick-hub -i . 460654
-```
-
-# Custimization
+## Custimization
 You can create a config file in ~/.pickrc to customize your preference
 ```
 # Supported configurations and format
@@ -40,7 +33,7 @@ delimiterEnd = ********************
 patchPreview = git log --oneline -1
 ```
 
-# Features
+## Features
 1. Input a list of change numbers, pick-patch can help you cherry pick patches from Gerrit server
 2. Reolve install path automatically (if your project is created by Repo). You can cherry pick
    multiple patches in different repositories at the same time
@@ -96,7 +89,7 @@ Pick: https://gerrit.mycompany.com/app refs/changes/88/7788/2
 ============================================================
 ```
 
-# Usage
+## Usage
 ```
 usage: pick-patch [-h] [-u USER] [-p PASSWORD] [-q QUERY] [--query-only]
                   [-r PREVIEW] [-g GERRIT] [-d] [-n NETRC_FILE]
