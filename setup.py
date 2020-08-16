@@ -1,6 +1,7 @@
 import setuptools
 
 # Upload:
+# rm -rf build/ csmgr.egg-info/ dist/
 # python3 setup.py sdist bdist_wheel --universal
 # python3 -m twine upload dist/*
 
@@ -9,7 +10,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
      name='pick-patch',
-     version='1.1.1',
+     version='1.1.2',
      scripts=['pick-patch'] ,
      author="Rick Chang",
      author_email="chchang915@gmail.com",
