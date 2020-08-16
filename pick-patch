@@ -19,12 +19,12 @@ import xml.etree.ElementTree as etree
 import ssl
 
 try:
-    import configparser as ConfigParser
+    from configparser import ConfigParser
     from urllib.parse import urlparse, urlencode, quote
     from urllib.error import HTTPError
     import urllib.request as request
 except ImportError:
-    import ConfigParser
+    from ConfigParser import SafeConfigParser as ConfigParser
     from urlparse import urlparse
     from urllib import urlencode, quote
     import urllib2 as request
@@ -102,6 +102,12 @@ class Config(object):
         self.preview = opts.preview if opts.preview else CONFIG['patchPreview']
         self.opts = opts
 
+def ReadConfig(config, fp):
+    if hasattr(config, 'read_file'):
+        config.read_file(fp)
+    else:
+        config.readfp(fp)
+
 def InitConfig(opts):
     config_file = CONFIG['configPath']
     if opts.config_file:
@@ -115,8 +121,8 @@ def InitConfig(opts):
         return Config(opts)
 
     Log("Use config file: %s" % config_file)
-    config = ConfigParser.SafeConfigParser()
-    config.readfp(FakeSection(open(config_file), CONFIG_SECTION))
+    config = ConfigParser()
+    ReadConfig(config, FakeSection(open(config_file), CONFIG_SECTION))
     for key, val in CONFIG.items():
         if not config.has_option(CONFIG_SECTION, key):
             continue
